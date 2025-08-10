@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, MouseEvent } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -26,12 +26,35 @@ export default function Home() {
   const [moodText, setMoodText] = useState("");
   const [selectedColor, setSelectedColor] = useState(moodColors[0].color);
   const [submittedMood, setSubmittedMood] = useState<{ text: string; color: string } | null>(null);
+  const colorWheelRef = useRef<HTMLDivElement>(null);
 
   const handleSubmit = () => {
     if (moodText.trim() || selectedColor) {
       setSubmittedMood({ text: moodText, color: selectedColor });
     }
   };
+
+  const handleColorWheelClick = (e: MouseEvent<HTMLDivElement>) => {
+    if (!colorWheelRef.current) return;
+
+    const rect = colorWheelRef.current.getBoundingClientRect();
+    const x = e.clientX - rect.left - rect.width / 2;
+    const y = e.clientY - rect.top - rect.height / 2;
+    const angle = (Math.atan2(y, x) * 180 / Math.PI + 360 + 90) % 360;
+    
+    const segmentAngle = 360 / moodColors.length;
+    const colorIndex = Math.floor(angle / segmentAngle);
+    
+    setSelectedColor(moodColors[colorIndex].color);
+  };
+  
+  const conicGradient = `conic-gradient(${moodColors
+    .map((c, i) => {
+      const segment = 360 / moodColors.length;
+      return `${c.color} ${i * segment}deg ${(i + 1) * segment}deg`;
+    })
+    .join(", ")})`;
+
 
   return (
     <div
@@ -71,24 +94,23 @@ export default function Home() {
               rows={3}
               className="bg-background/80"
             />
-            <div className="grid gap-2">
+            <div className="grid gap-2 items-center justify-center text-center">
               <label className="text-sm font-medium text-card-foreground">Choose a color</label>
-              <div className="flex flex-wrap gap-3">
-                {moodColors.map(({ name, color }) => (
-                  <button
-                    key={name}
-                    type="button"
-                    aria-label={name}
-                    onClick={() => setSelectedColor(color)}
-                    className={cn(
-                      "h-10 w-10 rounded-full border-2 transition-all duration-200",
-                      selectedColor === color
-                        ? "border-primary ring-2 ring-primary ring-offset-2 ring-offset-background"
-                        : "border-transparent hover:border-muted-foreground/50"
-                    )}
-                    style={{ backgroundColor: color }}
+              <div 
+                ref={colorWheelRef}
+                className="relative h-40 w-40 rounded-full cursor-pointer border-4"
+                style={{ 
+                  backgroundImage: conicGradient,
+                  borderColor: selectedColor
+                }}
+                onClick={handleColorWheelClick}
+              >
+                 <div 
+                   className="absolute inset-0 rounded-full transition-all duration-200"
+                   style={{
+                     boxShadow: `0 0 15px 5px ${selectedColor}, inset 0 0 15px 5px ${selectedColor}`
+                   }}
                   />
-                ))}
               </div>
             </div>
           </CardContent>
