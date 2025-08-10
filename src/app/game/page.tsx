@@ -1,3 +1,6 @@
+"use client";
+
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -9,8 +12,33 @@ import {
 } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { useToast } from "@/hooks/use-toast";
 
 export default function GamePage() {
+  const [selectedValue, setSelectedValue] = useState("none");
+  const { toast } = useToast();
+
+  const handleSubmit = () => {
+    if (selectedValue && selectedValue !== "none") {
+      toast({
+        title: "Submission Successful!",
+        description: `You selected: ${
+          selectedValue.charAt(0).toUpperCase() + selectedValue.slice(1)
+        }`,
+      });
+    } else {
+      toast({
+        title: "No selection made",
+        description: "Please select an option before submitting.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleValueChange = (value: string) => {
+    setSelectedValue(value);
+  };
+
   return (
     <div className="container mx-auto max-w-2xl py-10 animate-in fade-in">
       <div className="flex flex-col items-center text-center">
@@ -28,13 +56,18 @@ export default function GamePage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <form>
             <div className="grid w-full items-center gap-4">
               <div className="flex flex-col space-y-2">
                 <Label htmlFor="coping-mechanism" className="font-semibold">
                   When you feel stressed, what's your go-to coping mechanism?
                 </Label>
-                <RadioGroup defaultValue="none" id="coping-mechanism" className="pt-2">
+                <RadioGroup
+                  defaultValue="none"
+                  id="coping-mechanism"
+                  className="pt-2"
+                  onValueChange={handleValueChange}
+                  value={selectedValue}
+                >
                   <div className="flex items-center space-x-2">
                     <RadioGroupItem value="breathing" id="r1" />
                     <Label htmlFor="r1">Deep breathing or meditation</Label>
@@ -54,10 +87,9 @@ export default function GamePage() {
                 </RadioGroup>
               </div>
             </div>
-          </form>
         </CardContent>
         <CardFooter>
-          <Button className="w-full" disabled>Submit Answer (Placeholder)</Button>
+          <Button className="w-full" onClick={handleSubmit}>Submit Answer</Button>
         </CardFooter>
       </Card>
     </div>
