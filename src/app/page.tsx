@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState } from "react";
@@ -34,8 +35,12 @@ export default function Home() {
 
   return (
     <div
-      className="flex min-h-[calc(100dvh-3.5rem)] w-full flex-col items-center justify-center p-4 transition-colors duration-1000"
-      style={{ backgroundColor: submittedMood ? submittedMood.color : undefined }}
+      className="flex min-h-[calc(100dvh-3.5rem)] w-full flex-col items-center justify-center p-4 bg-cover bg-center transition-colors duration-1000"
+      style={{ 
+        backgroundColor: submittedMood ? submittedMood.color : undefined,
+        backgroundImage: submittedMood ? 'none' : "url('https://placehold.co/1920x1080.png')", 
+      }}
+      data-ai-hint="anime landscape"
     >
       {submittedMood ? (
         <div className="relative text-center animate-in fade-in">
@@ -51,7 +56,7 @@ export default function Home() {
             </Button>
         </div>
       ) : (
-        <Card className="w-full max-w-md animate-in fade-in slide-in-from-bottom-5">
+        <Card className="w-full max-w-md animate-in fade-in slide-in-from-bottom-5 bg-card/80 backdrop-blur-sm">
           <CardHeader>
             <CardTitle className="font-headline text-2xl">How are you feeling?</CardTitle>
             <CardDescription>
@@ -64,7 +69,7 @@ export default function Home() {
               value={moodText}
               onChange={(e) => setMoodText(e.target.value)}
               rows={3}
-              className="bg-background"
+              className="bg-background/80"
             />
             <div className="grid gap-2">
               <label className="text-sm font-medium text-card-foreground">Choose a color</label>
