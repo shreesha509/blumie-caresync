@@ -53,6 +53,8 @@ export default function DataPage() {
     return () => window.removeEventListener('storage', handleStorageChange);
   }, []);
 
+  // If the user is not loaded yet, or is not a warden, render nothing.
+  // This prevents content flashes and protects the route.
   if (!user || user.role !== 'warden') {
     return null;
   }
@@ -132,7 +134,7 @@ export default function DataPage() {
         <CardHeader>
           <CardTitle>Aggregate Mood Over Time</CardTitle>
           <CardDescription>Overall mood trends for all students over the last week.</CardDescription>
-        </Header>
+        </CardHeader>
         <CardContent className="pl-2">
           <MoodChart />
         </CardContent>

@@ -16,6 +16,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/context/AuthContext";
 import { analyzeMood } from "@/ai/flows/mood-analysis-flow";
+import type { MoodAnalysisOutput } from "@/ai/schemas/mood-analysis";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2 } from "lucide-react";
 
@@ -56,7 +57,7 @@ export default function Home() {
     
     setIsLoading(true);
     try {
-      const analysis = await analyzeMood({ mood: moodText });
+      const analysis: MoodAnalysisOutput = await analyzeMood({ mood: moodText });
       const moodData = {
         text: moodText,
         color: selectedColor,
