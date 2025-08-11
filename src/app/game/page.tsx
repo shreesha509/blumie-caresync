@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -13,10 +14,20 @@ import {
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/context/AuthContext";
 
 export default function GamePage() {
   const [selectedValue, setSelectedValue] = useState("none");
   const { toast } = useToast();
+  const { user } = useAuth();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (user && user.role !== "student") {
+      router.replace("/data");
+    }
+  }, [user, router]);
+
 
   const handleSubmit = () => {
     if (selectedValue && selectedValue !== "none") {
@@ -38,6 +49,10 @@ export default function GamePage() {
   const handleValueChange = (value: string) => {
     setSelectedValue(value);
   };
+  
+  if (!user || user.role !== 'student') {
+    return null;
+  }
 
   return (
     <div className="container mx-auto max-w-2xl py-10 animate-in fade-in">

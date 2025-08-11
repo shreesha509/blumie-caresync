@@ -1,7 +1,8 @@
 
 "use client";
 
-import { useState, useRef, MouseEvent } from "react";
+import { useState, useRef, MouseEvent, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -13,6 +14,7 @@ import {
 } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/context/AuthContext";
 
 const moodColors = [
   { name: "Serene", color: "#64B5F6" },
@@ -27,6 +29,14 @@ export default function Home() {
   const [selectedColor, setSelectedColor] = useState(moodColors[0].color);
   const [submittedMood, setSubmittedMood] = useState<{ text: string; color: string } | null>(null);
   const colorWheelRef = useRef<HTMLDivElement>(null);
+  const { user } = useAuth();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (user && user.role === "warden") {
+      router.replace("/data");
+    }
+  }, [user, router]);
 
   const handleSubmit = () => {
     if (moodText.trim() || selectedColor) {
@@ -55,6 +65,9 @@ export default function Home() {
     })
     .join(", ")})`;
 
+  if (!user || user.role !== 'student') {
+    return null;
+  }
 
   return (
     <div
