@@ -23,6 +23,7 @@ export default function GamePage() {
   const router = useRouter();
 
   useEffect(() => {
+    // Redirect if user is logged in and not a student
     if (user && user.role !== "student") {
       router.replace("/data");
     }
@@ -50,6 +51,8 @@ export default function GamePage() {
     setSelectedValue(value);
   };
   
+  // Don't render anything if the user is not a student or not logged in yet.
+  // This prevents brief flashes of content.
   if (!user || user.role !== 'student') {
     return null;
   }

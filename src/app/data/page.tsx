@@ -22,11 +22,14 @@ export default function DataPage() {
   const router = useRouter();
 
   useEffect(() => {
+    // Redirect if user is logged in and not a warden
     if (user && user.role !== "warden") {
       router.replace("/");
     }
   }, [user, router]);
-  
+
+  // Don't render anything if the user is not a warden or not logged in yet.
+  // This prevents brief flashes of content.
   if (!user || user.role !== 'warden') {
     return null;
   }
@@ -69,7 +72,7 @@ export default function DataPage() {
            <CardHeader>
             <CardTitle>Data Source</CardTitle>
             <CardDescription>Student data is synced from their apps.</CardDescription>
-          </CardHeader>
+          </Header>
           <CardContent>
             <p className="text-sm text-muted-foreground">
               Students connect their health apps to provide this anonymized overview.

@@ -33,6 +33,7 @@ export default function Home() {
   const router = useRouter();
 
   useEffect(() => {
+    // Redirect if user is logged in and is a warden
     if (user && user.role === "warden") {
       router.replace("/data");
     }
@@ -65,6 +66,8 @@ export default function Home() {
     })
     .join(", ")})`;
 
+  // Don't render anything if the user is not a student or not logged in yet.
+  // This prevents brief flashes of content before redirection.
   if (!user || user.role !== 'student') {
     return null;
   }
