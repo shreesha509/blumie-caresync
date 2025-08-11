@@ -31,15 +31,12 @@ export default function DataPage() {
   const [latestMood, setLatestMood] = useState<MoodData | null>(null);
 
   useEffect(() => {
-    // Redirect if user is logged in and not a warden
     if (user && user.role !== "warden") {
       router.replace("/");
     }
   }, [user, router]);
   
   useEffect(() => {
-    // This is a stand-in for a real database.
-    // In a real app, you would fetch this from a server.
     const storedMood = localStorage.getItem("latestMood");
     if (storedMood) {
       setLatestMood(JSON.parse(storedMood));
@@ -56,8 +53,6 @@ export default function DataPage() {
     return () => window.removeEventListener('storage', handleStorageChange);
   }, []);
 
-  // Don't render anything if the user is not a warden or not logged in yet.
-  // This prevents brief flashes of content.
   if (!user || user.role !== 'warden') {
     return null;
   }
