@@ -15,6 +15,9 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/context/AuthContext";
+import { analyzeMood } from "@/ai/flows/mood-analysis-flow";
+import { useToast } from "@/hooks/use-toast";
+import { Loader2 } from "lucide-react";
 
 const moodColors = [
   { name: "Serene", color: "#64B5F6" },
@@ -28,9 +31,11 @@ export default function Home() {
   const [moodText, setMoodText] = useState("");
   const [selectedColor, setSelectedColor] = useState(moodColors[0].color);
   const [submittedMood, setSubmittedMood] = useState<{ text: string; color: string } | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
   const colorWheelRef = useRef<HTMLDivElement>(null);
   const { user } = useAuth();
   const router = useRouter();
+  const { toast } = useToast();
 
   useEffect(() => {
     // Redirect if user is logged in and is a warden
@@ -39,9 +44,38 @@ export default function Home() {
     }
   }, [user, router]);
 
-  const handleSubmit = () => {
-    if (moodText.trim() || selectedColor) {
+  const handleSubmit = async () => {
+    if (!moodText.trim()) {
+       toast({
+        title: "Please describe your mood",
+        description: "Your mood description is needed for the analysis.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    setIsLoading(true);
+    try {
+      const analysis = await analyzeMood({ mood: moodText });
+      const moodData = {
+        text: moodText,
+        color: selectedColor,
+        analysis: analysis.summary,
+        timestamp: new Date().toISOString(),
+      };
+      
+      localStorage.setItem("latestMood", JSON.stringify(moodData));
+      
       setSubmittedMood({ text: moodText, color: selectedColor });
+    } catch (error) {
+       toast({
+        title: "Analysis Failed",
+        description: "Could not analyze the mood. Please try again.",
+        variant: "destructive",
+      });
+      console.error(error);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -84,11 +118,14 @@ export default function Home() {
       {submittedMood ? (
         <div className="relative text-center animate-in fade-in">
           <h1 className="text-5xl font-bold font-headline text-white" style={{ textShadow: '0 2px 4px rgba(0,0,0,0.5)' }}>
-            {submittedMood.text || "Feeling a new way"}
+            Thank you for sharing.
           </h1>
            <Button
               variant="outline"
-              onClick={() => setSubmittedMood(null)}
+              onClick={() => {
+                setSubmittedMood(null);
+                setMoodText('');
+              }}
               className="mt-8 bg-black/20 text-white border-white/50 hover:bg-black/40 hover:text-white"
             >
               Set a new mood
@@ -104,17 +141,18 @@ export default function Home() {
           </CardHeader>
           <CardContent className="grid gap-6">
             <Textarea
-              placeholder="e.g., Feeling peaceful and content..."
+              placeholder="e.g., Feeling peaceful and content, although a little tired from studying..."
               value={moodText}
               onChange={(e) => setMoodText(e.target.value)}
               rows={3}
               className="bg-background/80"
+              disabled={isLoading}
             />
             <div className="grid gap-2 items-center justify-center text-center">
               <label className="text-sm font-medium text-card-foreground">Choose a color</label>
               <div 
                 ref={colorWheelRef}
-                className="relative h-40 w-40 rounded-full cursor-pointer border-4"
+                className={cn("relative h-40 w-40 rounded-full cursor-pointer border-4", isLoading && "opacity-50 pointer-events-none")}
                 style={{ 
                   backgroundImage: conicGradient,
                   borderColor: selectedColor
@@ -131,8 +169,9 @@ export default function Home() {
             </div>
           </CardContent>
           <CardFooter>
-            <Button onClick={handleSubmit} className="w-full" variant="default">
-              Set Mood
+            <Button onClick={handleSubmit} className="w-full" variant="default" disabled={isLoading}>
+              {isLoading && <Loader2 className="animate-spin" />}
+              {isLoading ? "Analyzing..." : "Set Mood"}
             </Button>
           </CardFooter>
         </Card>

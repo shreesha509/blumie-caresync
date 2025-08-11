@@ -1,8 +1,8 @@
+
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import Link from 'next/link';
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -13,13 +13,22 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { ArrowRight, HeartPulse, Footprints } from "lucide-react";
+import { HeartPulse, Footprints, Activity } from "lucide-react";
 import MoodChart from '@/components/MoodChart';
 import { useAuth } from "@/context/AuthContext";
+import { formatDistanceToNow } from 'date-fns';
+
+interface MoodData {
+  text: string;
+  color: string;
+  analysis: string;
+  timestamp: string;
+}
 
 export default function DataPage() {
   const { user } = useAuth();
   const router = useRouter();
+  const [latestMood, setLatestMood] = useState<MoodData | null>(null);
 
   useEffect(() => {
     // Redirect if user is logged in and not a warden
@@ -27,6 +36,25 @@ export default function DataPage() {
       router.replace("/");
     }
   }, [user, router]);
+  
+  useEffect(() => {
+    // This is a stand-in for a real database.
+    // In a real app, you would fetch this from a server.
+    const storedMood = localStorage.getItem("latestMood");
+    if (storedMood) {
+      setLatestMood(JSON.parse(storedMood));
+    }
+
+    const handleStorageChange = () => {
+       const updatedMood = localStorage.getItem("latestMood");
+       if (updatedMood) {
+         setLatestMood(JSON.parse(updatedMood));
+       }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
+  }, []);
 
   // Don't render anything if the user is not a warden or not logged in yet.
   // This prevents brief flashes of content.
@@ -37,17 +65,17 @@ export default function DataPage() {
   return (
     <div className="container mx-auto max-w-4xl py-10 animate-in fade-in">
       <div className="flex flex-col items-center text-center">
-        <h1 className="text-4xl font-bold font-headline tracking-tight">Wellness Data</h1>
+        <h1 className="text-4xl font-bold font-headline tracking-tight">Wellness Dashboard</h1>
         <p className="mt-2 text-lg text-muted-foreground">
           An overview of student mood and biometric data.
         </p>
       </div>
 
       <div className="mt-10 grid gap-6 md:grid-cols-2">
-        <Card>
+         <Card>
           <CardHeader>
-            <CardTitle>Today's Snapshot</CardTitle>
-            <CardDescription>A summary of student vitals.</CardDescription>
+            <CardTitle>Today's Vitals</CardTitle>
+            <CardDescription>A summary of student biometrics.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="flex items-center justify-between">
@@ -68,19 +96,37 @@ export default function DataPage() {
           </CardContent>
         </Card>
         
-        <Card>
+        <Card className="flex flex-col">
            <CardHeader>
-            <CardTitle>Data Source</CardTitle>
-            <CardDescription>Student data is synced from their apps.</CardDescription>
+            <CardTitle>Student Mood Analysis</CardTitle>
+            <CardDescription>
+              {latestMood
+                ? `Last updated: ${formatDistanceToNow(new Date(latestMood.timestamp))} ago`
+                : "No mood submitted yet."}
+            </CardDescription>
           </Header>
-          <CardContent>
-            <p className="text-sm text-muted-foreground">
-              Students connect their health apps to provide this anonymized overview.
-            </p>
+          <CardContent className="flex-grow space-y-4">
+            {latestMood ? (
+              <>
+                <div className="flex items-start gap-4">
+                   <div className="w-4 h-4 rounded-full mt-1.5 shrink-0" style={{ backgroundColor: latestMood.color }} />
+                  <p className="text-sm text-muted-foreground italic">"{latestMood.text}"</p>
+                </div>
+                <Separator />
+                <div className="flex items-start gap-4">
+                  <Activity className="h-5 w-5 text-accent-foreground mt-0.5 shrink-0" />
+                  <p className="font-medium">{latestMood.analysis}</p>
+                </div>
+              </>
+            ) : (
+              <div className="flex items-center justify-center h-full">
+                <p className="text-muted-foreground">Waiting for student submission...</p>
+              </div>
+            )}
           </CardContent>
-          <CardFooter>
+           <CardFooter>
             <Button disabled className="w-full">
-              Connected to Google Fit
+              Real-time Analysis by Gemini
             </Button>
           </CardFooter>
         </Card>
@@ -90,7 +136,7 @@ export default function DataPage() {
         <CardHeader>
           <CardTitle>Aggregate Mood Over Time</CardTitle>
           <CardDescription>Overall mood trends for all students over the last week.</CardDescription>
-        </CardHeader>
+        </Header>
         <CardContent className="pl-2">
           <MoodChart />
         </CardContent>
