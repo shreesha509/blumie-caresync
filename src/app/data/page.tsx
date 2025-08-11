@@ -37,6 +37,7 @@ export default function DataPage() {
   }, [user, router]);
   
   useEffect(() => {
+    // This effect runs only on the client
     const storedMood = localStorage.getItem("latestMood");
     if (storedMood) {
       setLatestMood(JSON.parse(storedMood));
@@ -53,10 +54,13 @@ export default function DataPage() {
     return () => window.removeEventListener('storage', handleStorageChange);
   }, []);
 
+  // Conditional rendering based on user role.
+  // We explicitly return null if the user is not a warden, which prevents rendering anything for other roles.
   if (!user || user.role !== 'warden') {
     return null;
   }
 
+  // This JSX will only be rendered if the user is a warden.
   return (
     <div className="container mx-auto max-w-4xl py-10 animate-in fade-in">
       <div className="flex flex-col items-center text-center">
