@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useEffect, useState } from "react";
@@ -54,8 +53,6 @@ export default function DataPage() {
     return () => window.removeEventListener('storage', handleStorageChange);
   }, []);
 
-  // Conditional rendering based on user role.
-  // We explicitly return null if the user is not a warden, which prevents rendering anything for other roles and fixes the build error.
   if (!user || user.role !== 'warden') {
     return null;
   }
@@ -103,7 +100,7 @@ export default function DataPage() {
                 ? `Last updated: ${formatDistanceToNow(new Date(latestMood.timestamp))} ago`
                 : "No mood submitted yet."}
             </CardDescription>
-          </Header>
+          </CardHeader>
           <CardContent className="flex-grow space-y-4">
             {latestMood ? (
               <>
