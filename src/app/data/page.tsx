@@ -55,7 +55,7 @@ export default function DataPage() {
   }, []);
 
   // Conditional rendering based on user role.
-  // We explicitly return null if the user is not a warden, which prevents rendering anything for other roles.
+  // We explicitly return null if the user is not a warden, which prevents rendering anything for other roles and fixes the build error.
   if (!user || user.role !== 'warden') {
     return null;
   }
