@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useEffect, useState } from "react";
@@ -12,12 +13,13 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { HeartPulse, Footprints, Activity } from "lucide-react";
+import { HeartPulse, Footprints, Activity, User as UserIcon } from "lucide-react";
 import MoodChart from '@/components/MoodChart';
 import { useAuth } from "@/context/AuthContext";
 import { formatDistanceToNow } from 'date-fns';
 
 interface MoodData {
+  studentName?: string;
   text: string;
   color: string;
   analysis: string;
@@ -96,7 +98,7 @@ export default function DataPage() {
         
         <Card className="flex flex-col">
            <CardHeader>
-            <CardTitle>Student Mood Analysis</CardTitle>
+            <CardTitle>Latest Student Mood</CardTitle>
             <CardDescription>
               {latestMood
                 ? `Last updated: ${formatDistanceToNow(new Date(latestMood.timestamp))} ago`
@@ -106,6 +108,11 @@ export default function DataPage() {
           <CardContent className="flex-grow space-y-4">
             {latestMood ? (
               <>
+                 <div className="flex items-center gap-4">
+                  <UserIcon className="h-5 w-5 text-accent-foreground shrink-0" />
+                  <p className="font-bold text-lg">{latestMood.studentName || 'Unknown Student'}</p>
+                </div>
+                <Separator />
                 <div className="flex items-start gap-4">
                    <div className="w-4 h-4 rounded-full mt-1.5 shrink-0" style={{ backgroundColor: latestMood.color }} />
                   <p className="text-sm text-muted-foreground italic">"{latestMood.text}"</p>

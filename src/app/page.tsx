@@ -152,6 +152,7 @@ export default function Home() {
     try {
       const analysis: MoodAnalysisOutput = await analyzeMood({ mood: moodText });
       const moodData = {
+        studentName: user?.name,
         text: moodText,
         color: selectedColor,
         analysis: analysis.summary,
@@ -234,7 +235,7 @@ export default function Home() {
           <CardHeader>
             <div className="flex justify-between items-start">
               <div>
-                <CardTitle className="font-headline text-2xl">How are you feeling?</CardTitle>
+                <CardTitle className="font-headline text-2xl">How are you feeling, {user?.name}?</CardTitle>
                 <CardDescription>
                   Describe your current mood and pick a color that represents it.
                 </CardDescription>
@@ -296,5 +297,3 @@ export default function Home() {
     </div>
   );
 }
-
-    
