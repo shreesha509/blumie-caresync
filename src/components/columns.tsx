@@ -32,6 +32,14 @@ export const columns: ColumnDef<MoodData>[] = [
     cell: ({ row }) => <div className="italic text-muted-foreground">"{row.getValue("text")}"</div>,
   },
   {
+    accessorKey: "gameResponse",
+    header: "Game Response",
+    cell: ({ row }) => {
+        const response = row.original.gameResponse;
+        return response ? <div className="capitalize">{response}</div> : <div className="text-muted-foreground/50">N/A</div>;
+    }
+  },
+  {
     accessorKey: "analysis",
     header: "Gemini Analysis",
   },

@@ -25,6 +25,7 @@ export interface MoodData {
   color: string;
   analysis: string;
   timestamp: string;
+  gameResponse?: string;
 }
 
 export default function DataPage() {
@@ -136,6 +137,14 @@ export default function DataPage() {
                   <p className="text-sm text-muted-foreground italic">"{latestMood.text}"</p>
                 </div>
                 <Separator />
+                 {latestMood.gameResponse && (
+                  <>
+                  <div className="flex items-start gap-4">
+                    <p className="text-sm text-muted-foreground">Scenario Response: <span className="font-medium text-foreground">{latestMood.gameResponse}</span></p>
+                  </div>
+                  <Separator />
+                  </>
+                )}
                 <div className="flex items-start gap-4">
                   <Activity className="h-5 w-5 text-accent-foreground mt-0.5 shrink-0" />
                   <p className="font-medium">{latestMood.analysis}</p>

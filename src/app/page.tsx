@@ -150,6 +150,8 @@ export default function Home() {
     
     setIsLoading(true);
     try {
+      // For now, we'll just do the simple analysis. 
+      // The game page will handle the consistency analysis.
       const analysis: MoodAnalysisOutput = await analyzeMood({ mood: moodText });
       const moodData = {
         studentName: user?.name,
@@ -157,14 +159,15 @@ export default function Home() {
         color: selectedColor,
         analysis: analysis.summary,
         timestamp: new Date().toISOString(),
+        gameResponse: null, // Will be filled in from the game page
       };
       
       // Store the latest mood for the dashboard card
       localStorage.setItem("latestMood", JSON.stringify(moodData));
       
-      // Add to history for the data table
+      // We'll add it to history, but it might be updated by the game page later.
       const history = JSON.parse(localStorage.getItem("moodHistory") || "[]");
-      history.unshift(moodData); // Add to the beginning of the array
+      history.unshift(moodData);
       localStorage.setItem("moodHistory", JSON.stringify(history));
 
       if (bleDevice && bleCharacteristic) {
@@ -172,6 +175,16 @@ export default function Home() {
       }
 
       setSubmittedMood({ text: moodText, color: selectedColor });
+      
+      // Acknowledge submission before redirecting
+      toast({
+        title: "Mood Submitted!",
+        description: "Now, let's play a quick game to reflect.",
+      });
+
+      // Redirect to the game page for the next step
+      router.push('/game');
+
     } catch (error) {
        toast({
         title: "Analysis Failed",
@@ -215,91 +228,72 @@ export default function Home() {
     <div
       className="flex min-h-[calc(100dvh-3.5rem)] w-full flex-col items-center justify-center p-4 bg-cover bg-center transition-colors duration-1000"
       style={{ 
-        backgroundColor: submittedMood ? submittedMood.color : undefined,
-        backgroundImage: submittedMood ? 'none' : "url('https://placehold.co/1920x1080.png')", 
+        backgroundImage: "url('https://placehold.co/1920x1080.png')", 
       }}
       data-ai-hint="anime landscape"
     >
-      {submittedMood ? (
-        <div className="relative text-center animate-in fade-in">
-          <h1 className="text-5xl font-bold font-headline text-white" style={{ textShadow: '0 2px 4px rgba(0,0,0,0.5)' }}>
-            Thank you for sharing.
-          </h1>
-           <Button
-              variant="outline"
-              onClick={() => {
-                setSubmittedMood(null);
-                setMoodText('');
-              }}
-              className="mt-8 bg-black/20 text-white border-white/50 hover:bg-black/40 hover:text-white"
+      <Card className="w-full max-w-md animate-in fade-in slide-in-from-bottom-5 bg-card/80 backdrop-blur-sm">
+        <CardHeader>
+          <div className="flex justify-between items-start">
+            <div>
+              <CardTitle className="font-headline text-2xl">How are you feeling, {user?.name}?</CardTitle>
+              <CardDescription>
+                Describe your current mood and pick a color that represents it.
+              </CardDescription>
+            </div>
+            <Button
+              variant={bleDevice ? "secondary" : "outline"}
+              size="icon"
+              onClick={handleConnect}
+              disabled={isConnecting || !!bleDevice}
+              aria-label="Connect to Mood Light"
             >
-              Set a new mood
+              {isConnecting ? (
+                <Loader2 className="animate-spin" />
+              ) : bleDevice ? (
+                <Zap className="text-green-500" />
+              ) : (
+                <ZapOff />
+              )}
             </Button>
-        </div>
-      ) : (
-        <Card className="w-full max-w-md animate-in fade-in slide-in-from-bottom-5 bg-card/80 backdrop-blur-sm">
-          <CardHeader>
-            <div className="flex justify-between items-start">
-              <div>
-                <CardTitle className="font-headline text-2xl">How are you feeling, {user?.name}?</CardTitle>
-                <CardDescription>
-                  Describe your current mood and pick a color that represents it.
-                </CardDescription>
-              </div>
-              <Button
-                variant={bleDevice ? "secondary" : "outline"}
-                size="icon"
-                onClick={handleConnect}
-                disabled={isConnecting || !!bleDevice}
-                aria-label="Connect to Mood Light"
-              >
-                {isConnecting ? (
-                  <Loader2 className="animate-spin" />
-                ) : bleDevice ? (
-                  <Zap className="text-green-500" />
-                ) : (
-                  <ZapOff />
-                )}
-              </Button>
+          </div>
+        </CardHeader>
+        <CardContent className="grid gap-6">
+          <Textarea
+            placeholder="e.g., Feeling peaceful and content, although a little tired from studying..."
+            value={moodText}
+            onChange={(e) => setMoodText(e.target.value)}
+            rows={3}
+            className="bg-background/80"
+            disabled={isLoading}
+          />
+          <div className="grid gap-2 items-center justify-center text-center">
+            <label className="text-sm font-medium text-card-foreground">Choose a color</label>
+            <div 
+              ref={colorWheelRef}
+              className={cn("relative h-40 w-40 rounded-full cursor-pointer border-4", isLoading && "opacity-50 pointer-events-none")}
+              style={{ 
+                backgroundImage: conicGradient,
+                borderColor: selectedColor
+              }}
+              onClick={handleColorWheelClick}
+            >
+               <div 
+                 className="absolute inset-0 rounded-full transition-all duration-200"
+                 style={{
+                   boxShadow: `0 0 15px 5px ${selectedColor}, inset 0 0 15px 5px ${selectedColor}`
+                 }}
+                />
             </div>
-          </CardHeader>
-          <CardContent className="grid gap-6">
-            <Textarea
-              placeholder="e.g., Feeling peaceful and content, although a little tired from studying..."
-              value={moodText}
-              onChange={(e) => setMoodText(e.target.value)}
-              rows={3}
-              className="bg-background/80"
-              disabled={isLoading}
-            />
-            <div className="grid gap-2 items-center justify-center text-center">
-              <label className="text-sm font-medium text-card-foreground">Choose a color</label>
-              <div 
-                ref={colorWheelRef}
-                className={cn("relative h-40 w-40 rounded-full cursor-pointer border-4", isLoading && "opacity-50 pointer-events-none")}
-                style={{ 
-                  backgroundImage: conicGradient,
-                  borderColor: selectedColor
-                }}
-                onClick={handleColorWheelClick}
-              >
-                 <div 
-                   className="absolute inset-0 rounded-full transition-all duration-200"
-                   style={{
-                     boxShadow: `0 0 15px 5px ${selectedColor}, inset 0 0 15px 5px ${selectedColor}`
-                   }}
-                  />
-              </div>
-            </div>
-          </CardContent>
-          <CardFooter>
-            <Button onClick={handleSubmit} className="w-full" variant="default" disabled={isLoading}>
-              {isLoading && <Loader2 className="animate-spin" />}
-              {isLoading ? "Analyzing..." : "Set Mood"}
-            </Button>
-          </CardFooter>
-        </Card>
-      )}
+          </div>
+        </CardContent>
+        <CardFooter>
+          <Button onClick={handleSubmit} className="w-full" variant="default" disabled={isLoading}>
+            {isLoading && <Loader2 className="animate-spin" />}
+            {isLoading ? "Analyzing..." : "Continue to Game"}
+          </Button>
+        </CardFooter>
+      </Card>
     </div>
   );
 }
