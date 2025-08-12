@@ -13,6 +13,7 @@ import {
   MoodTruthfulnessOutput,
   MoodTruthfulnessOutputSchema
 } from '@/ai/schemas/mood-truthfulness';
+import { sendSmsWarning } from '@/services/notification-service';
 
 export async function analyzeMoodTruthfulness(input: MoodTruthfulnessInput): Promise<MoodTruthfulnessOutput> {
   return moodTruthfulnessFlow(input);
@@ -53,6 +54,11 @@ const moodTruthfulnessFlow = ai.defineFlow(
   },
   async (input) => {
     const {output} = await prompt(input);
+    
+    if (output?.truthfulness === "Potentially Inconsistent") {
+      await sendSmsWarning(input.studentName);
+    }
+    
     return output!;
   }
 );

@@ -86,6 +86,14 @@ export default function GamePage() {
       });
       return;
     }
+    if (!user?.name) {
+       toast({
+        title: "User Not Found",
+        description: "Could not identify the current user.",
+        variant: "destructive",
+      });
+      return;
+    }
 
     setIsLoading(true);
     try {
@@ -108,6 +116,7 @@ export default function GamePage() {
         };
 
         const analysis: MoodTruthfulnessOutput = await analyzeMoodTruthfulness({
+            studentName: user.name,
             mood: latestMood.text,
             answers: answerPayload
         });

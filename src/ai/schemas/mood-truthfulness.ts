@@ -24,6 +24,7 @@ const AnswersSchema = z.object({
 });
 
 export const MoodTruthfulnessInputSchema = z.object({
+  studentName: z.string().describe("The name of the student submitting the answers."),
   mood: z.string().describe("The original mood description provided by the student."),
   answers: AnswersSchema.describe("The student's answers to the 10-question game."),
 });
@@ -38,4 +39,3 @@ export const MoodTruthfulnessOutputSchema = z.object({
     .describe('A concise, one or two-sentence explanation for the truthfulness assessment.'),
 });
 export type MoodTruthfulnessOutput = z.infer<typeof MoodTruthfulnessOutputSchema>;
-
