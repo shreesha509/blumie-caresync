@@ -26,14 +26,31 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { User, Shield } from "lucide-react";
+import { studentData } from "@/lib/student-data";
 
 export default function LoginPage() {
   const { login } = useAuth();
   const { toast } = useToast();
-  const [password, setPassword] = useState("");
+  
+  const [studentName, setStudentName] = useState("");
+  const [studentPassword, setStudentPassword] = useState("");
+  const [wardenPassword, setWardenPassword] = useState("");
+
+  const handleStudentLogin = () => {
+    const student = studentData.find(s => s.name.toLowerCase() === studentName.toLowerCase());
+    if (student && student.password === studentPassword) {
+      login("student", { name: student.name });
+    } else {
+       toast({
+        title: "Invalid Credentials",
+        description: "The name or password you entered is incorrect. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
 
   const handleWardenLogin = () => {
-    if (password === "bnmit") {
+    if (wardenPassword === "bnmit") {
       login("warden");
     } else {
       toast({
@@ -54,10 +71,61 @@ export default function LoginPage() {
           </CardDescription>
         </CardHeader>
         <CardContent className="grid gap-4">
-          <Button size="lg" onClick={() => login("student")}>
-            <User className="mr-2" />
-            Login as Student
-          </Button>
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button size="lg">
+                <User className="mr-2" />
+                Login as Student
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Student Login</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Please enter your name and password to continue.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <div className="grid gap-4 py-4">
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="student-name-input" className="text-right">
+                    Name
+                  </Label>
+                  <Input
+                    id="student-name-input"
+                    className="col-span-3"
+                    value={studentName}
+                    onChange={(e) => setStudentName(e.target.value)}
+                  />
+                </div>
+                 <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="student-password-input" className="text-right">
+                    Password
+                  </Label>
+                  <Input
+                    id="student-password-input"
+                    type="password"
+                    className="col-span-3"
+                    value={studentPassword}
+                    onChange={(e) => setStudentPassword(e.target.value)}
+                     onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        handleStudentLogin();
+                      }
+                    }}
+                  />
+                </div>
+              </div>
+              <AlertDialogFooter>
+                <AlertDialogCancel onClick={() => {
+                  setStudentName('');
+                  setStudentPassword('');
+                }}>Cancel</AlertDialogCancel>
+                <AlertDialogAction onClick={handleStudentLogin}>Login</AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+          
           <AlertDialog>
             <AlertDialogTrigger asChild>
               <Button size="lg" variant="secondary">
@@ -74,15 +142,15 @@ export default function LoginPage() {
               </AlertDialogHeader>
               <div className="grid gap-4 py-4">
                 <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="password-input" className="text-right">
+                  <Label htmlFor="warden-password-input" className="text-right">
                     Password
                   </Label>
                   <Input
-                    id="password-input"
+                    id="warden-password-input"
                     type="password"
                     className="col-span-3"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
+                    value={wardenPassword}
+                    onChange={(e) => setWardenPassword(e.target.value)}
                     onKeyDown={(e) => {
                       if (e.key === 'Enter') {
                         e.preventDefault();
@@ -93,7 +161,7 @@ export default function LoginPage() {
                 </div>
               </div>
               <AlertDialogFooter>
-                <AlertDialogCancel onClick={() => setPassword('')}>Cancel</AlertDialogCancel>
+                <AlertDialogCancel onClick={() => setWardenPassword('')}>Cancel</AlertDialogCancel>
                 <AlertDialogAction onClick={handleWardenLogin}>Login</AlertDialogAction>
               </AlertDialogFooter>
             </AlertDialogContent>

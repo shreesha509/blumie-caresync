@@ -7,11 +7,12 @@ import { useRouter, usePathname } from "next/navigation";
 type Role = "student" | "warden";
 interface User {
   role: Role;
+  name?: string; 
 }
 
 interface AuthContextType {
   user: User | null;
-  login: (role: Role) => void;
+  login: (role: Role, credentials?: { name: string }) => void;
   logout: () => void;
 }
 
@@ -23,11 +24,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const pathname = usePathname();
 
   useEffect(() => {
-    const storedUserRole = localStorage.getItem("userRole");
-    if (storedUserRole) {
-      setUser({ role: storedUserRole as Role });
-    } else if (pathname !== "/login") {
-      router.replace("/login");
+    try {
+      const storedUser = localStorage.getItem("user");
+      if (storedUser) {
+        setUser(JSON.parse(storedUser));
+      } else if (pathname !== "/login") {
+        router.replace("/login");
+      }
+    } catch (error) {
+       console.error("Failed to parse user from localStorage", error);
+       localStorage.removeItem("user");
+       if (pathname !== "/login") {
+        router.replace("/login");
+      }
     }
   }, []);
 
@@ -41,13 +50,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [user, pathname, router]);
 
-  const login = (role: Role) => {
-    localStorage.setItem("userRole", role);
-    setUser({ role });
+  const login = (role: Role, credentials?: { name: string }) => {
+    const userData: User = { role, ...credentials };
+    localStorage.setItem("user", JSON.stringify(userData));
+    setUser(userData);
   };
 
   const logout = () => {
-    localStorage.removeItem("userRole");
+    localStorage.removeItem("user");
     setUser(null);
   };
 
