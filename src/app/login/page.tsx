@@ -68,12 +68,13 @@ export default function LoginPage() {
         <CardHeader className="text-center">
           <div className="mx-auto mb-4">
              <Image
-              src="https://bnmit.org/wp-content/uploads/2021/06/bnmit-logo-1.png"
+              src="https://i.postimg.cc/c12C8M5A/Screenshot-2024-07-26-at-2-33-28-PM.png"
               alt="BNMIT Logo"
-              width={80}
-              height={80}
+              width={120}
+              height={120}
               priority
               data-ai-hint="logo"
+              className="rounded-full"
             />
           </div>
           <CardTitle className="font-headline text-2xl">Welcome to MoodLight</CardTitle>
