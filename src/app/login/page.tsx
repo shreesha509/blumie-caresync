@@ -2,6 +2,7 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import { useAuth } from "@/context/AuthContext";
 import { Button } from "@/components/ui/button";
 import {
@@ -65,6 +66,16 @@ export default function LoginPage() {
     <div className="flex min-h-dvh w-full flex-col items-center justify-center p-4 bg-background">
       <Card className="w-full max-w-sm animate-in fade-in slide-in-from-bottom-5">
         <CardHeader className="text-center">
+          <div className="mx-auto mb-4">
+             <Image
+              src="https://bnmit.org/wp-content/uploads/2021/06/bnmit-logo-1.png"
+              alt="BNMIT Logo"
+              width={80}
+              height={80}
+              priority
+              data-ai-hint="logo"
+            />
+          </div>
           <CardTitle className="font-headline text-2xl">Welcome to MoodLight</CardTitle>
           <CardDescription>
             Please select your role to log in.
