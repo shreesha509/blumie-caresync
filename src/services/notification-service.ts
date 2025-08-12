@@ -1,24 +1,48 @@
 
-/**
- * @fileOverview A service for sending notifications.
- * In a real application, this would integrate with an SMS provider like Twilio.
- */
+import twilio from 'twilio';
 
 /**
- * Simulates sending an SMS warning message to a warden.
+ * @fileOverview A service for sending notifications using Twilio.
+ */
+
+// Initialize Twilio client.
+// It will automatically use the credentials from environment variables.
+const accountSid = process.env.TWILIO_ACCOUNT_SID;
+const authToken = process.env.TWILIO_AUTH_TOKEN;
+const twilioPhoneNumber = process.env.TWILIO_PHONE_NUMBER;
+const wardenPhoneNumber = process.env.WARDEN_PHONE_NUMBER;
+
+// Only initialize the client if all credentials are provided.
+const client = accountSid && authToken ? twilio(accountSid, authToken) : null;
+
+/**
+ * Sends an SMS warning message to the warden's phone number.
  * @param studentName The name of the student who triggered the warning.
  */
 export async function sendSmsWarning(studentName: string): Promise<void> {
-  // In a real application, you would use an SMS API here.
-  // For this prototype, we'll just log to the console.
-  const message = `[SMS SIMULATION] Warning: Student '${studentName}' has submitted a mood entry that was flagged as potentially inconsistent. Please review the dashboard.`;
-  console.log('--------------------------------------------------');
-  console.log(message);
-  console.log('--------------------------------------------------');
-  // This is where you would add your SMS sending logic, e.g.:
-  // await twilio.messages.create({
-  //   body: message,
-  //   from: 'your_twilio_number',
-  //   to: 'warden_phone_number'
-  // });
+  const message = `MoodLight Alert: Student '${studentName}' has submitted a mood entry that was flagged as potentially inconsistent. A conversation with a caretaker is recommended. Please review the dashboard.`;
+
+  if (!client || !twilioPhoneNumber || !wardenPhoneNumber) {
+    console.error('--------------------------------------------------');
+    console.error('Twilio credentials are not configured in environment variables.');
+    console.error('SMS not sent. Logging message instead:');
+    console.log(message);
+    console.error('--------------------------------------------------');
+    return;
+  }
+
+  try {
+    const response = await client.messages.create({
+      body: message,
+      from: twilioPhoneNumber,
+      to: wardenPhoneNumber
+    });
+    console.log('--------------------------------------------------');
+    console.log(`SMS alert sent successfully! SID: ${response.sid}`);
+    console.log('--------------------------------------------------');
+  } catch (error) {
+    console.error('--------------------------------------------------');
+    console.error('Failed to send SMS via Twilio:', error);
+    console.error('--------------------------------------------------');
+  }
 }
