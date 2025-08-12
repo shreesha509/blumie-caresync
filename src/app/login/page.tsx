@@ -72,7 +72,7 @@ export default function LoginPage() {
           className="z-0"
           data-ai-hint="logo background"
         />
-        <div className="absolute inset-0 bg-background/60 backdrop-blur-sm z-10" />
+        <div className="absolute inset-0 bg-background/80 backdrop-blur-sm z-10" />
       <Card className="w-full max-w-sm animate-in fade-in slide-in-from-bottom-5 z-20">
         <CardHeader className="text-center">
           <CardTitle className="font-headline text-2xl">Welcome to MoodLight</CardTitle>
