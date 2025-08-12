@@ -17,8 +17,10 @@ import { HeartPulse, Footprints, Activity, User as UserIcon } from "lucide-react
 import MoodChart from '@/components/MoodChart';
 import { useAuth } from "@/context/AuthContext";
 import { formatDistanceToNow } from 'date-fns';
+import { MoodDataTable } from "@/components/MoodDataTable";
+import { columns } from "@/components/columns";
 
-interface MoodData {
+export interface MoodData {
   studentName?: string;
   text: string;
   color: string;
@@ -30,6 +32,7 @@ export default function DataPage() {
   const { user } = useAuth();
   const router = useRouter();
   const [latestMood, setLatestMood] = useState<MoodData | null>(null);
+  const [moodHistory, setMoodHistory] = useState<MoodData[]>([]);
 
   useEffect(() => {
     if (user && user.role !== "warden") {
@@ -43,11 +46,19 @@ export default function DataPage() {
     if (storedMood) {
       setLatestMood(JSON.parse(storedMood));
     }
+    const storedHistory = localStorage.getItem("moodHistory");
+    if (storedHistory) {
+      setMoodHistory(JSON.parse(storedHistory));
+    }
 
     const handleStorageChange = () => {
        const updatedMood = localStorage.getItem("latestMood");
        if (updatedMood) {
          setLatestMood(JSON.parse(updatedMood));
+       }
+       const updatedHistory = localStorage.getItem("moodHistory");
+       if (updatedHistory) {
+         setMoodHistory(JSON.parse(updatedHistory));
        }
     };
 
@@ -63,7 +74,7 @@ export default function DataPage() {
 
   // This JSX will only be rendered if the user is a warden.
   return (
-    <div className="container mx-auto max-w-4xl py-10 animate-in fade-in">
+    <div className="container mx-auto py-10 animate-in fade-in">
       <div className="flex flex-col items-center text-center">
         <h1 className="text-4xl font-bold font-headline tracking-tight">Wellness Dashboard</h1>
         <p className="mt-2 text-lg text-muted-foreground">
@@ -71,8 +82,8 @@ export default function DataPage() {
         </p>
       </div>
 
-      <div className="mt-10 grid gap-6 md:grid-cols-2">
-         <Card>
+      <div className="mt-10 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+         <Card className="lg:col-span-1">
           <CardHeader>
             <CardTitle>Today's Vitals</CardTitle>
             <CardDescription>A summary of student biometrics.</CardDescription>
@@ -96,7 +107,7 @@ export default function DataPage() {
           </CardContent>
         </Card>
         
-        <Card className="flex flex-col">
+        <Card className="flex flex-col lg:col-span-2">
            <CardHeader>
             <CardTitle>Latest Student Mood</CardTitle>
             <CardDescription>
@@ -137,13 +148,13 @@ export default function DataPage() {
         </Card>
       </div>
 
-      <Card className="mt-6">
+       <Card className="mt-6">
         <CardHeader>
-          <CardTitle>Aggregate Mood Over Time</CardTitle>
-          <CardDescription>Overall mood trends for all students over the last week.</CardDescription>
+          <CardTitle>Student Mood History</CardTitle>
+          <CardDescription>A complete log of all student mood submissions.</CardDescription>
         </CardHeader>
-        <CardContent className="pl-2">
-          <MoodChart />
+        <CardContent>
+            <MoodDataTable columns={columns} data={moodHistory} />
         </CardContent>
       </Card>
     </div>

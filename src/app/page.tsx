@@ -159,8 +159,14 @@ export default function Home() {
         timestamp: new Date().toISOString(),
       };
       
+      // Store the latest mood for the dashboard card
       localStorage.setItem("latestMood", JSON.stringify(moodData));
       
+      // Add to history for the data table
+      const history = JSON.parse(localStorage.getItem("moodHistory") || "[]");
+      history.unshift(moodData); // Add to the beginning of the array
+      localStorage.setItem("moodHistory", JSON.stringify(history));
+
       if (bleDevice && bleCharacteristic) {
         await sendColorToDevice(selectedColor);
       }
