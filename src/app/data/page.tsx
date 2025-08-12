@@ -14,7 +14,6 @@ import {
 } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { HeartPulse, Footprints, Activity, User as UserIcon } from "lucide-react";
-import MoodChart from '@/components/MoodChart';
 import { useAuth } from "@/context/AuthContext";
 import { formatDistanceToNow } from 'date-fns';
 import { MoodDataTable } from "@/components/MoodDataTable";
@@ -103,6 +102,14 @@ export default function DataPage() {
                 <span className="font-medium">Avg. Steps Taken</span>
               </div>
               <span className="font-mono text-lg">6,200</span>
+            </div>
+             <Separator />
+             <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <Activity className="h-6 w-6 text-green-500" />
+                <span className="font-medium">Avg. Active Mins</span>
+              </div>
+              <span className="font-mono text-lg">45</span>
             </div>
           </CardContent>
         </Card>
