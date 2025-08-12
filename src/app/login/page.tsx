@@ -63,20 +63,18 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="flex min-h-dvh w-full flex-col items-center justify-center p-4 bg-background">
-      <Card className="w-full max-w-sm animate-in fade-in slide-in-from-bottom-5">
+    <div className="relative flex min-h-dvh w-full flex-col items-center justify-center p-4">
+       <Image
+          src="https://i.postimg.cc/c12C8M5A/Screenshot-2024-07-26-at-2-33-28-PM.png"
+          alt="BNMIT Logo Background"
+          layout="fill"
+          objectFit="cover"
+          className="z-0"
+          data-ai-hint="logo background"
+        />
+        <div className="absolute inset-0 bg-background/60 backdrop-blur-sm z-10" />
+      <Card className="w-full max-w-sm animate-in fade-in slide-in-from-bottom-5 z-20">
         <CardHeader className="text-center">
-          <div className="mx-auto mb-4">
-             <Image
-              src="https://i.postimg.cc/c12C8M5A/Screenshot-2024-07-26-at-2-33-28-PM.png"
-              alt="BNMIT Logo"
-              width={120}
-              height={120}
-              priority
-              data-ai-hint="logo"
-              className="rounded-full"
-            />
-          </div>
           <CardTitle className="font-headline text-2xl">Welcome to MoodLight</CardTitle>
           <CardDescription>
             Please select your role to log in.
