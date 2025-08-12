@@ -3,9 +3,10 @@
 
 import { ColumnDef } from "@tanstack/react-table"
 import { MoodData } from "@/app/data/page"
-import { ArrowUpDown } from "lucide-react"
+import { ArrowUpDown, CheckCircle, AlertTriangle } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { format } from "date-fns"
+import { Badge } from "./ui/badge"
 
 export const columns: ColumnDef<MoodData>[] = [
   {
@@ -32,16 +33,31 @@ export const columns: ColumnDef<MoodData>[] = [
     cell: ({ row }) => <div className="italic text-muted-foreground">"{row.getValue("text")}"</div>,
   },
   {
-    accessorKey: "gameResponse",
-    header: "Game Response",
+    accessorKey: "truthfulness",
+    header: "Mood Validity",
     cell: ({ row }) => {
-        const response = row.original.gameResponse;
-        return response ? <div className="capitalize">{response}</div> : <div className="text-muted-foreground/50">N/A</div>;
+        const truthfulness = row.original.truthfulness;
+        if (!truthfulness) return <div className="text-muted-foreground/50">N/A</div>;
+
+        return truthfulness === "Genuine" ? (
+             <Badge variant="secondary" className="bg-green-100 text-green-800 border-green-200">
+                <CheckCircle className="mr-2 h-4 w-4 text-green-600" />
+                Genuine
+            </Badge>
+        ) : (
+            <Badge variant="destructive" className="bg-yellow-100 text-yellow-800 border-yellow-200 hover:bg-yellow-200">
+                <AlertTriangle className="mr-2 h-4 w-4 text-yellow-600" />
+                Inconsistent
+            </Badge>
+        )
     }
   },
   {
-    accessorKey: "analysis",
+    accessorKey: "reasoning",
     header: "Gemini Analysis",
+    cell: ({ row }) => {
+      return row.original.reasoning || row.original.analysis
+    }
   },
   {
     accessorKey: "color",

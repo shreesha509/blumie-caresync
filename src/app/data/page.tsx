@@ -13,7 +13,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { HeartPulse, Footprints, Activity, User as UserIcon } from "lucide-react";
+import { HeartPulse, Footprints, Activity, User as UserIcon, CheckCircle, AlertTriangle } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { formatDistanceToNow } from 'date-fns';
 import { MoodDataTable } from "@/components/MoodDataTable";
@@ -25,7 +25,9 @@ export interface MoodData {
   color: string;
   analysis: string;
   timestamp: string;
-  gameResponse?: string;
+  gameResponse?: Record<string, string>; // Changed to record for multiple answers
+  truthfulness?: "Genuine" | "Potentially Inconsistent";
+  reasoning?: string;
 }
 
 export default function DataPage() {
@@ -137,17 +139,21 @@ export default function DataPage() {
                   <p className="text-sm text-muted-foreground italic">"{latestMood.text}"</p>
                 </div>
                 <Separator />
-                 {latestMood.gameResponse && (
+                 {latestMood.truthfulness && (
                   <>
-                  <div className="flex items-start gap-4">
-                    <p className="text-sm text-muted-foreground">Scenario Response: <span className="font-medium text-foreground">{latestMood.gameResponse}</span></p>
-                  </div>
-                  <Separator />
+                    <div className="flex items-start gap-4">
+                        {latestMood.truthfulness === 'Genuine' 
+                            ? <CheckCircle className="h-5 w-5 text-green-500 mt-0.5 shrink-0" />
+                            : <AlertTriangle className="h-5 w-5 text-yellow-500 mt-0.5 shrink-0" />
+                        }
+                        <p className="font-medium">{latestMood.truthfulness}</p>
+                    </div>
+                    <Separator />
                   </>
                 )}
                 <div className="flex items-start gap-4">
                   <Activity className="h-5 w-5 text-accent-foreground mt-0.5 shrink-0" />
-                  <p className="font-medium">{latestMood.analysis}</p>
+                  <p className="font-medium">{latestMood.reasoning || latestMood.analysis}</p>
                 </div>
               </>
             ) : (

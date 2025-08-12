@@ -150,8 +150,7 @@ export default function Home() {
     
     setIsLoading(true);
     try {
-      // For now, we'll just do the simple analysis. 
-      // The game page will handle the consistency analysis.
+      // Perform the initial simple analysis first.
       const analysis: MoodAnalysisOutput = await analyzeMood({ mood: moodText });
       const moodData = {
         studentName: user?.name,
@@ -159,13 +158,15 @@ export default function Home() {
         color: selectedColor,
         analysis: analysis.summary,
         timestamp: new Date().toISOString(),
-        gameResponse: null, // Will be filled in from the game page
+        gameResponse: {}, // Will be filled in from the game page
+        truthfulness: null,
+        reasoning: null,
       };
       
-      // Store the latest mood for the dashboard card
+      // Store the latest mood for the dashboard card and game page to use
       localStorage.setItem("latestMood", JSON.stringify(moodData));
       
-      // We'll add it to history, but it might be updated by the game page later.
+      // Add the initial record to history. The game page will update this record.
       const history = JSON.parse(localStorage.getItem("moodHistory") || "[]");
       history.unshift(moodData);
       localStorage.setItem("moodHistory", JSON.stringify(history));
