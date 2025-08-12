@@ -227,11 +227,7 @@ export default function Home() {
 
   return (
     <div
-      className="flex min-h-[calc(100dvh-3.5rem)] w-full flex-col items-center justify-center p-4 bg-cover bg-center transition-colors duration-1000"
-      style={{ 
-        backgroundImage: "url('https://placehold.co/1920x1080.png')", 
-      }}
-      data-ai-hint="anime landscape"
+      className="flex min-h-[calc(100dvh-3.5rem)] w-full flex-col items-center justify-center p-4 transition-colors duration-1000"
     >
       <Card className="w-full max-w-md animate-in fade-in slide-in-from-bottom-5 bg-card/80 backdrop-blur-sm">
         <CardHeader>
