@@ -23,21 +23,40 @@ import { Carousel, CarouselContent, CarouselItem, type CarouselApi } from "@/com
 import { Progress } from "@/components/ui/progress";
 
 
-const questions = [
+const allQuestions = [
   { id: "q1", question: "You just found out a surprise test is happening in your next class. How do you feel?", options: ["Nervous", "Excited", "Anxious", "Indifferent"] },
   { id: "q2", question: "A friend cancels plans with you last minute. What's your immediate reaction?", options: ["Understanding", "Annoyed", "Relieved", "Hurt"] },
   { id: "q3", question: "You have a completely free afternoon with no obligations. What are you most likely to do?", options: ["Rest/Nap", "Socialize", "Hobby", "Catch up on work"] },
   { id: "q4", question: "How often have you felt overwhelmed by your schoolwork this past week?", options: ["Rarely", "Sometimes", "Often", "Constantly"] },
-  { id: "q5", question: "You receive some unexpected praise from a teacher. How does it make you feel?", options: ["Proud", "Suspicious", "Uncomfortable", "Happy"] },
+  { id: "q5", "question": "You receive some unexpected praise from a teacher. How does it make you feel?", options: ["Proud", "Suspicious", "Uncomfortable", "Happy"] },
   { id: "q6", question: "How easy has it been for you to fall asleep at night recently?", options: ["Very easy", "Average", "Difficult", "Very difficult"] },
   { id: "q7", question: "Thinking about your energy levels right now, which best describes them?", options: ["High energy", "Steady", "Low energy", "Drained"] },
   { id: "q8", question: "How connected do you feel to your friends and family at the moment?", options: ["Very connected", "Somewhat connected", "Disconnected", "Isolated"] },
   { id: "q9", question: "You make a mistake on an important assignment. What is your first thought?", options: ["'I can fix this.'", "'I'm a failure.'", "'It's not a big deal.'", "'I'll get criticized.'"] },
   { id: "q10", question: "Right now, what are you most looking forward to?", options: ["An upcoming event", "Just getting through the day", "Seeing a friend/family", "Nothing in particular"] },
+  { id: "q11", question: "How do you typically handle stress?", options: ["Exercise", "Talk to someone", "Keep it to myself", "Ignore it"] },
+  { id: "q12", question: "What is your proudest recent accomplishment?", options: ["Academic success", "Personal growth", "Helping someone", "I don't feel proud"] },
+  { id: "q13", question: "How do you feel in social situations?", options: ["Energized", "Anxious", "Comfortable", "It depends"] },
+  { id: "q14", question: "How often do you make time for hobbies you enjoy?", options: ["Daily", "Weekly", "Rarely", "Never"] },
+  { id: "q15", question: "How would you describe your current motivation level?", options: ["Very high", "Moderate", "Low", "Non-existent"] },
+  { id: "q16", question: "How do you react to criticism?", options: ["Constructively", "Defensively", "I get upset", "I ignore it"] },
+  { id: "q17", question: "What part of your daily routine do you enjoy the most?", options: ["Morning", "Afternoon", "Evening", "None of it"] },
+  { id: "q18", question: "How optimistic do you feel about your future?", options: ["Very optimistic", "Somewhat optimistic", "Pessimistic", "Unsure"] },
+  { id: "q19", question: "How do you feel when you're alone?", options: ["Peaceful", "Lonely", "Bored", "Productive"] },
+  { id: "q20", question: "If you could change one thing about your life right now, what would it be?", options: ["My workload", "My social life", "My habits", "Nothing"] },
 ];
+
+const shuffleArray = (array: any[]) => {
+    for (let i = array.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [array[i], array[j]] = [array[j], array[i]];
+    }
+    return array;
+}
 
 export default function GamePage() {
   const [answers, setAnswers] = useState<Record<string, string>>({});
+  const [questions, setQuestions] = useState<{id: string; question: string; options: string[]}[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
   const { user } = useAuth();
@@ -45,6 +64,11 @@ export default function GamePage() {
   const [api, setApi] = useState<CarouselApi>()
   const [current, setCurrent] = useState(0)
   const [count, setCount] = useState(0)
+  
+  useEffect(() => {
+    const shuffledQuestions = shuffleArray([...allQuestions]);
+    setQuestions(shuffledQuestions.slice(0, 10));
+  }, []);
 
   useEffect(() => {
     if (user && user.role !== "student") {
@@ -75,7 +99,7 @@ export default function GamePage() {
     setAnswers(prev => ({ ...prev, [questionId]: value }));
   };
   
-  const allQuestionsAnswered = Object.keys(answers).length === questions.length;
+  const allQuestionsAnswered = questions.length > 0 && Object.keys(answers).length === questions.length;
 
   const handleSubmit = async () => {
     if (!allQuestionsAnswered) {
@@ -103,16 +127,16 @@ export default function GamePage() {
         const latestMood = JSON.parse(storedMoodData);
         
         const answerPayload = {
-            answer1: answers.q1,
-            answer2: answers.q2,
-            answer3: answers.q3,
-            answer4: answers.q4,
-            answer5: answers.q5,
-            answer6: answers.q6,
-            answer7: answers.q7,
-            answer8: answers.q8,
-            answer9: answers.q9,
-            answer10: answers.q10,
+            answer1: answers[questions[0].id],
+            answer2: answers[questions[1].id],
+            answer3: answers[questions[2].id],
+            answer4: answers[questions[3].id],
+            answer5: answers[questions[4].id],
+            answer6: answers[questions[5].id],
+            answer7: answers[questions[6].id],
+            answer8: answers[questions[7].id],
+            answer9: answers[questions[8].id],
+            answer10: answers[questions[9].id],
         };
 
         const analysis: MoodTruthfulnessOutput = await analyzeMoodTruthfulness({
@@ -158,7 +182,7 @@ export default function GamePage() {
     }
   };
   
-  if (!user || user.role !== 'student') {
+  if (!user || user.role !== 'student' || questions.length === 0) {
     return null;
   }
 
@@ -222,3 +246,5 @@ export default function GamePage() {
     </div>
   );
 }
+
+    
