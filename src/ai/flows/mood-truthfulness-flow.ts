@@ -27,16 +27,16 @@ const prompt = ai.definePrompt({
 
 - Student's mood description: {{{mood}}}
 - Student's game answers:
-  1. "How do you feel about a surprise test?": {{{answers.answer1}}}
-  2. "A friend cancels plans last minute. Your reaction?": {{{answers.answer2}}}
-  3. "You have a free afternoon. What do you do?": {{{answers.answer3}}}
-  4. "How often do you feel overwhelmed by your schoolwork?": {{{answers.answer4}}}
-  5. "You receive unexpected praise. How do you feel?": {{{answers.answer5}}}
-  6. "How easy is it for you to fall asleep at night?": {{{answers.answer6}}}
-  7. "What is your energy level like right now?": {{{answers.answer7}}}
-  8. "How connected do you feel to your friends and family?": {{{answers.answer8}}}
-  9. "You made a mistake on an assignment. Your first thought?": {{{answers.answer9}}}
-  10. "What are you most looking forward to?": {{{answers.answer10}}}
+  1. "You just found out a surprise test is happening in your next class. How do you feel?": {{{answers.answer1}}}
+  2. "A friend cancels plans with you last minute. What's your immediate reaction?": {{{answers.answer2}}}
+  3. "You have a completely free afternoon with no obligations. What are you most likely to do?": {{{answers.answer3}}}
+  4. "How often have you felt overwhelmed by your schoolwork this past week?": {{{answers.answer4}}}
+  5. "You receive some unexpected praise from a teacher. How does it make you feel?": {{{answers.answer5}}}
+  6. "How easy has it been for you to fall asleep at night recently?": {{{answers.answer6}}}
+  7. "Thinking about your energy levels right now, which best describes them?": {{{answers.answer7}}}
+  8. "How connected do you feel to your friends and family at the moment?": {{{answers.answer8}}}
+  9. "You make a mistake on an important assignment. What is your first thought?": {{{answers.answer9}}}
+  10. "Right now, what are you most looking forward to?": {{{answers.answer10}}}
 
 Analyze all inputs for patterns, congruencies, and contradictions.
 - If the mood and answers are consistent, set truthfulness to "Genuine".
