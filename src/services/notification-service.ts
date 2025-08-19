@@ -15,7 +15,8 @@ export async function sendSmsWarning(studentName: string): Promise<void> {
   const twilioPhoneNumber = process.env.TWILIO_PHONE_NUMBER;
   const wardenPhoneNumber = process.env.WARDEN_PHONE_NUMBER;
 
-  const message = `MoodLight Alert: Student '${studentName}' has submitted a mood entry that was flagged as potentially inconsistent. A conversation with a caretaker is recommended. Please review the dashboard.`;
+  // The AI has flagged this submission as high-risk.
+  const message = `IMMEDIATE ATTENTION: MoodLight has flagged a submission from student '${studentName}' as high-risk. Their responses suggest they may be in a dangerous emotional state. A conversation with a caretaker is strongly recommended. Please review the dashboard immediately.`;
 
   if (!accountSid || !authToken || !twilioPhoneNumber || !wardenPhoneNumber) {
     console.error('--------------------------------------------------');
@@ -35,7 +36,7 @@ export async function sendSmsWarning(studentName: string): Promise<void> {
       to: wardenPhoneNumber
     });
     console.log('--------------------------------------------------');
-    console.log(`SMS alert sent successfully! SID: ${response.sid}`);
+    console.log(`High-risk SMS alert sent successfully! SID: ${response.sid}`);
     console.log('--------------------------------------------------');
   } catch (error) {
     console.error('--------------------------------------------------');

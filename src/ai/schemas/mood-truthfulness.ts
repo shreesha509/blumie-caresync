@@ -37,5 +37,8 @@ export const MoodTruthfulnessOutputSchema = z.object({
   reasoning: z
     .string()
     .describe('A concise, one or two-sentence explanation for the truthfulness assessment.'),
+  alertCaretaker: z
+    .boolean()
+    .describe("Set to true if the student's answers indicate a high-risk situation requiring immediate intervention, otherwise false."),
 });
 export type MoodTruthfulnessOutput = z.infer<typeof MoodTruthfulnessOutputSchema>;

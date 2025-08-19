@@ -23,7 +23,7 @@ const prompt = ai.definePrompt({
   name: 'moodTruthfulnessPrompt',
   input: {schema: MoodTruthfulnessInputSchema},
   output: {schema: MoodTruthfulnessOutputSchema},
-  prompt: `You are a school wellness counselor with a specialization in psychology. Your task is to analyze a student's self-reported mood and compare it against their answers to a 10-question psychological game to determine the likelihood that their initial mood description is genuine.
+  prompt: `You are a school wellness counselor with a specialization in psychology. Your task is to analyze a student's self-reported mood and compare it against their answers to a 10-question psychological game to determine the likelihood that their initial mood description is genuine. More importantly, you must assess if the student's answers suggest they are in a dangerous state or require immediate intervention.
 
 - Student's mood description: {{{mood}}}
 - Student's game answers:
@@ -39,10 +39,14 @@ const prompt = ai.definePrompt({
   10. "What are you most looking forward to?": {{{answers.answer10}}}
 
 Analyze all inputs for patterns, congruencies, and contradictions.
-- If the mood and answers are highly consistent, set truthfulness to "Genuine".
-- If there are significant contradictions (e.g., reports feeling "Happy" but answers suggest high stress and social withdrawal), set truthfulness to "Potentially Inconsistent".
+- If the mood and answers are consistent, set truthfulness to "Genuine".
+- If there are contradictions (e.g., reports feeling "Happy" but answers suggest high stress), set truthfulness to "Potentially Inconsistent".
 
-Provide a concise, one or two-sentence reasoning for your conclusion. Frame it as a professional observation. Example: "The student's claim of feeling 'calm' is supported by their measured responses to stressful scenarios and their reported stable energy levels." or "The student reported feeling 'fine', but their answers indicating sleep difficulty and feeling overwhelmed suggest they may be experiencing more stress than they are letting on."
+CRITICAL ASSESSMENT:
+- Review the answers for any indication of severe distress, hopelessness, isolation, self-harm ideation, or a dangerous situation (e.g., answers like "'I'm a failure.'", "Isolated", "Nothing in particular" to looking forward to something, "Non-existent" motivation).
+- If you detect a combination of responses that indicate a high-risk situation that requires immediate intervention from a caretaker, set the 'alertCaretaker' flag to true. Otherwise, set it to false.
+
+Provide a concise, one or two-sentence reasoning for your conclusion. Frame it as a professional observation.
 `,
 });
 
@@ -55,7 +59,8 @@ const moodTruthfulnessFlow = ai.defineFlow(
   async (input) => {
     const {output} = await prompt(input);
     
-    if (output?.truthfulness === "Potentially Inconsistent") {
+    // If the AI flags the situation as requiring an alert, send the SMS.
+    if (output?.alertCaretaker) {
       await sendSmsWarning(input.studentName);
     }
     
