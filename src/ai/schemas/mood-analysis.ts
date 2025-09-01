@@ -15,8 +15,8 @@ export const MoodAnalysisInputSchema = z.object({
 export type MoodAnalysisInput = z.infer<typeof MoodAnalysisInputSchema>;
 
 export const MoodAnalysisOutputSchema = z.object({
-  summary: z
+  analysis: z
     .string()
-    .describe('A concise, one-sentence summary of the student\'s well-being based on their mood description. Frame it as an observation (e.g., "The student seems...").'),
+    .describe('A concise, one or two-sentence psychological analysis of the student\'s well-being based on their mood description. Frame it as a professional observation (e.g., "The student\'s language suggests...").'),
 });
 export type MoodAnalysisOutput = z.infer<typeof MoodAnalysisOutputSchema>;

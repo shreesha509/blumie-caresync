@@ -228,12 +228,12 @@ export default function Home() {
     setIsLoading(true);
     try {
       // Perform the initial simple analysis first.
-      const analysis: MoodAnalysisOutput = await analyzeMood({ mood: moodText });
+      const result: MoodAnalysisOutput = await analyzeMood({ mood: moodText });
       const moodData = {
         studentName: user?.name,
         text: moodText,
         color: selectedColor,
-        analysis: analysis.summary,
+        analysis: result.analysis,
         timestamp: new Date().toISOString(),
         gameResponse: {}, // Will be filled in from the game page
         truthfulness: null,
@@ -383,5 +383,3 @@ export default function Home() {
     </div>
   );
 }
-
-    

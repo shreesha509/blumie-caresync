@@ -22,9 +22,11 @@ const prompt = ai.definePrompt({
   name: 'moodAnalysisPrompt',
   input: {schema: MoodAnalysisInputSchema},
   output: {schema: MoodAnalysisOutputSchema},
-  prompt: `You are a school wellness counselor. Your task is to analyze a student's mood description and provide a simple, one-sentence summary of their potential state of well-being. Do not offer advice.
+  prompt: `You are a school wellness counselor with a specialization in psychology. Your task is to perform a psychological analysis of a student's mood description.
 
-Student's mood: {{{mood}}}`,
+Analyze the student's word choice, sentiment, and underlying meaning. Provide a concise, one or two-sentence analysis of their potential psychological state. Frame it as a professional observation. Do not offer advice.
+
+Student's mood description: {{{mood}}}`,
 });
 
 const analyzeMoodFlow = ai.defineFlow(
