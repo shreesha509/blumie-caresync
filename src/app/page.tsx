@@ -18,7 +18,7 @@ import { useAuth } from "@/context/AuthContext";
 import { analyzeMood } from "@/ai/flows/mood-analysis-flow";
 import type { MoodAnalysisOutput } from "@/ai/schemas/mood-analysis";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Zap, ZapOff } from "lucide-react";
+import { Loader2, Zap, ZapOff, Mic, MicOff } from "lucide-react";
 
 const moodColors = [
   { name: "Serene", color: "#64B5F6" },
@@ -33,6 +33,14 @@ const moodColors = [
 const BLE_SERVICE_UUID = "4fafc201-1fb5-459e-8fcc-c5c9c331914b";
 const BLE_CHARACTERISTIC_UUID = "beb5483e-36e1-4688-b7f5-ea07361b26a8";
 
+// Add this type definition for the SpeechRecognition API
+declare global {
+  interface Window {
+    SpeechRecognition: any;
+    webkitSpeechRecognition: any;
+  }
+}
+
 export default function Home() {
   const [moodText, setMoodText] = useState("");
   const [selectedColor, setSelectedColor] = useState(moodColors[0].color);
@@ -46,6 +54,9 @@ export default function Home() {
   const [bleDevice, setBleDevice] = useState<BluetoothDevice | null>(null);
   const [bleCharacteristic, setBleCharacteristic] = useState<BluetoothCharacteristic | null>(null);
   const [isConnecting, setIsConnecting] = useState(false);
+  
+  const [isRecording, setIsRecording] = useState(false);
+  const speechRecognitionRef = useRef<any>(null);
 
   useEffect(() => {
     // Redirect if user is logged in and is a warden
@@ -54,6 +65,69 @@ export default function Home() {
     }
   }, [user, router]);
   
+  useEffect(() => {
+    // Speech Recognition setup (client-side only)
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (SpeechRecognition) {
+      speechRecognitionRef.current = new SpeechRecognition();
+      speechRecognitionRef.current.continuous = true;
+      speechRecognitionRef.current.interimResults = true;
+      speechRecognitionRef.current.lang = 'en-US';
+
+      speechRecognitionRef.current.onstart = () => {
+        setIsRecording(true);
+      };
+
+      speechRecognitionRef.current.onend = () => {
+        setIsRecording(false);
+      };
+
+      speechRecognitionRef.current.onresult = (event: any) => {
+        let interimTranscript = '';
+        let finalTranscript = '';
+        for (let i = event.resultIndex; i < event.results.length; ++i) {
+          if (event.results[i].isFinal) {
+            finalTranscript += event.results[i][0].transcript;
+          } else {
+            interimTranscript += event.results[i][0].transcript;
+          }
+        }
+        // Update the text area with the final part of the transcript
+        setMoodText(prevText => prevText + finalTranscript);
+      };
+      
+       speechRecognitionRef.current.onerror = (event: any) => {
+        console.error("Speech recognition error", event.error);
+        toast({
+          title: "Speech Recognition Error",
+          description: `An error occurred: ${event.error}`,
+          variant: "destructive",
+        });
+        setIsRecording(false);
+      };
+
+    }
+  }, [toast]);
+  
+  const toggleRecording = () => {
+    if (!speechRecognitionRef.current) {
+        toast({
+          title: "Speech Recognition Not Supported",
+          description: "Your browser doesn't support this feature.",
+          variant: "destructive",
+        });
+        return;
+    }
+    if (isRecording) {
+      speechRecognitionRef.current.stop();
+    } else {
+      // Clear previous text before starting a new recording
+      setMoodText('');
+      speechRecognitionRef.current.start();
+    }
+  };
+
+
   const handleConnect = async () => {
     if (!navigator.bluetooth) {
       toast({
@@ -139,6 +213,9 @@ export default function Home() {
 
 
   const handleSubmit = async () => {
+    if (isRecording) {
+      speechRecognitionRef.current.stop();
+    }
     if (!moodText.trim()) {
        toast({
         title: "Please describe your mood",
@@ -256,14 +333,26 @@ export default function Home() {
           </div>
         </CardHeader>
         <CardContent className="grid gap-6">
-          <Textarea
-            placeholder="e.g., Feeling peaceful and content, although a little tired from studying..."
-            value={moodText}
-            onChange={(e) => setMoodText(e.target.value)}
-            rows={3}
-            className="bg-background/80"
-            disabled={isLoading}
-          />
+          <div className="relative">
+             <Textarea
+              placeholder={isRecording ? "Listening..." : "e.g., Feeling peaceful and content..."}
+              value={moodText}
+              onChange={(e) => setMoodText(e.target.value)}
+              rows={3}
+              className="bg-background/80 pr-12"
+              disabled={isLoading}
+            />
+             <Button
+                variant="ghost"
+                size="icon"
+                className={cn("absolute right-2 top-1/2 -translate-y-1/2", isRecording && "text-red-500 hover:text-red-600")}
+                onClick={toggleRecording}
+                disabled={isLoading}
+                aria-label="Toggle recording"
+            >
+                {isRecording ? <MicOff /> : <Mic />}
+            </Button>
+          </div>
           <div className="grid gap-2 items-center justify-center text-center">
             <label className="text-sm font-medium text-card-foreground">Choose a color</label>
             <div 
@@ -294,3 +383,5 @@ export default function Home() {
     </div>
   );
 }
+
+    
