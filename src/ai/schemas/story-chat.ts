@@ -39,5 +39,12 @@ export const StoryChatOutputSchema = z.object({
   response: z
     .string()
     .describe('The chatbot\'s next conversational response to the student.'),
+  isFinalMessage: z
+    .boolean()
+    .describe("Set to true only when the conversation has reached a natural conclusion and you are providing the final thought."),
+  finalThought: z
+    .string()
+    .optional()
+    .describe("A concluding, personalized, and reflective thought or quote for the student based on the conversation. This should only be provided when isFinalMessage is true."),
 });
 export type StoryChatOutput = z.infer<typeof StoryChatOutputSchema>;

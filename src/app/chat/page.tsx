@@ -16,7 +16,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/context/AuthContext";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Send, Bot } from "lucide-react";
+import { Loader2, Send, Bot, Sparkles } from "lucide-react";
 import { storyChat } from "@/ai/flows/story-chat-flow";
 import type { StoryChatInput, StoryChatOutput } from "@/ai/schemas/story-chat";
 
@@ -29,6 +29,8 @@ export default function ChatPage() {
     const [chatMessage, setChatMessage] = useState("");
     const [chatHistory, setChatHistory] = useState<{ role: 'user' | 'model', content: string }[]>([]);
     const [isChatLoading, setIsChatLoading] = useState(false);
+    const [isConversationOver, setIsConversationOver] = useState(false);
+    const [finalThought, setFinalThought] = useState<string | null>(null);
     const chatContainerRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
@@ -92,6 +94,11 @@ export default function ChatPage() {
             
             const newHistory = [...currentHistory, { role: 'model' as const, content: result.response }];
             setChatHistory(newHistory);
+            
+            if (result.isFinalMessage) {
+                setIsConversationOver(true);
+                setFinalThought(result.finalThought || "Take care.");
+            }
 
         } catch (error) {
             toast({
@@ -154,38 +161,50 @@ export default function ChatPage() {
                              </div>
                          )}
                     </div>
-                    <div className="relative">
-                        <Textarea
-                            placeholder="Say anything..."
-                            value={chatMessage}
-                            onChange={(e) => setChatMessage(e.target.value)}
-                            onKeyDown={(e) => {
-                                if (e.key === 'Enter' && !e.shiftKey) {
-                                    e.preventDefault();
-                                    handleChatSubmit(false, latestMood);
-                                }
-                            }}
-                            disabled={isChatLoading || chatHistory.length === 0}
-                            className="pr-12"
-                            rows={2}
-                        />
-                        <Button
-                            size="icon"
-                            variant="ghost"
-                            className="absolute right-2 top-1/2 -translate-y-1/2"
-                            onClick={() => handleChatSubmit(false, latestMood)}
-                            disabled={isChatLoading || chatHistory.length === 0 || !chatMessage}
-                        >
-                            <Send />
-                        </Button>
-                    </div>
+                    
+                    {isConversationOver && finalThought && (
+                        <div className="!mt-6 rounded-lg border border-accent/50 bg-accent/20 p-4 text-center animate-in fade-in">
+                            <Sparkles className="mx-auto h-6 w-6 text-accent-foreground/80" />
+                            <p className="mt-2 font-headline text-lg italic text-accent-foreground">"{finalThought}"</p>
+                            <p className="mt-2 text-xs text-muted-foreground">— A thought for you</p>
+                        </div>
+                    )}
+                    
+                    {!isConversationOver && (
+                        <div className="relative">
+                            <Textarea
+                                placeholder="Say anything..."
+                                value={chatMessage}
+                                onChange={(e) => setChatMessage(e.target.value)}
+                                onKeyDown={(e) => {
+                                    if (e.key === 'Enter' && !e.shiftKey) {
+                                        e.preventDefault();
+                                        handleChatSubmit(false, latestMood);
+                                    }
+                                }}
+                                disabled={isChatLoading || chatHistory.length === 0}
+                                className="pr-12"
+                                rows={2}
+                            />
+                            <Button
+                                size="icon"
+                                variant="ghost"
+                                className="absolute right-2 top-1/2 -translate-y-1/2"
+                                onClick={() => handleChatSubmit(false, latestMood)}
+                                disabled={isChatLoading || chatHistory.length === 0 || !chatMessage}
+                            >
+                                <Send />
+                            </Button>
+                        </div>
+                    )}
                 </CardContent>
                 <CardFooter>
                     <Button
                         className="w-full"
                         onClick={() => router.push('/')}
+                        disabled={!isConversationOver && chatHistory.length > 0}
                     >
-                        Finish & Return Home
+                        {isConversationOver ? "Finish & Return Home" : "Waiting for conversation to end..."}
                     </Button>
                 </CardFooter>
             </Card>
