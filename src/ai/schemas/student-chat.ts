@@ -27,9 +27,9 @@ export const StudentChatOutputSchema = z.object({
     .describe('The chatbot\'s next conversational response to the student.'),
   isFinalMessage: z
     .boolean()
-    .describe('Set to true when the conversation should conclude and the final message should be delivered.'),
+    .describe('Set to true when the conversation should conclude and the final message should be delivered. This typically happens after 1-2 user interactions.'),
   finalMessage: z
     .string()
-    .describe('A concluding, supportive psychological message for the student based on their mood and the conversation. This is delivered at the end.')
+    .describe('A concluding, supportive psychological message for the student based on their mood and the conversation. This is delivered only at the very end when isFinalMessage is true.')
 });
 export type StudentChatOutput = z.infer<typeof StudentChatOutputSchema>;

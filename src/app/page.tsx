@@ -264,7 +264,7 @@ export default function Home() {
       
       toast({
         title: "Mood Submitted!",
-        description: "Now, let's play a quick game to reflect.",
+        description: "Now, let's have a quick chat.",
       });
 
       // Start the chatbot conversation after submission
@@ -427,6 +427,7 @@ export default function Home() {
                     <Button
                         className="w-full"
                         onClick={() => router.push('/game')}
+                        disabled={!finalMessage}
                     >
                         Continue to Game
                     </Button>
@@ -510,7 +511,7 @@ export default function Home() {
         <CardFooter>
           <Button onClick={handleSubmit} className="w-full" variant="default" disabled={isLoading}>
             {isLoading && <Loader2 className="animate-spin" />}
-            {isLoading ? "Submit & Chat" : "Submit & Chat"}
+            {isLoading ? "Submitting..." : "Submit & Start Chat"}
           </Button>
         </CardFooter>
       </Card>
