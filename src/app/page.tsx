@@ -302,13 +302,17 @@ export default function Home() {
     <div
       className="flex min-h-[calc(100dvh-3.5rem)] w-full flex-col items-center justify-center p-4 transition-colors duration-1000"
     >
+      <div className="text-center mb-4">
+        <h1 className="text-3xl font-bold font-headline tracking-tight">Welcome, {user.name}!</h1>
+        <p className="text-lg text-muted-foreground">Let's take a moment to check in.</p>
+      </div>
       <Card className="w-full max-w-md animate-in fade-in slide-in-from-bottom-5 bg-card/80 backdrop-blur-sm">
         <CardHeader>
           <div className="flex justify-between items-start">
             <div>
-              <CardTitle className="font-headline text-2xl">How are you feeling, {user?.name}?</CardTitle>
+              <CardTitle className="font-headline text-2xl">Share Your Current Mood</CardTitle>
               <CardDescription>
-                Describe your current mood and pick a color that represents it.
+                Let your feelings flow. Express your mood and choose a color that reflects it.
               </CardDescription>
             </div>
             <Button
@@ -379,3 +383,5 @@ export default function Home() {
     </div>
   );
 }
+
+    
