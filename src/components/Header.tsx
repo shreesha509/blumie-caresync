@@ -1,3 +1,4 @@
+
 "use client";
 
 import Link from "next/link";
@@ -16,6 +17,7 @@ export function Header() {
       ? [
           { href: "/", label: "Mood" },
           { href: "/game", label: "Game" },
+          { href: "/chat", label: "Chat" },
         ]
       : [
           { href: "/data", label: "Data" },

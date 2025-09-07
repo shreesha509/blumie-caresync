@@ -47,11 +47,12 @@ const allQuestions = [
 ];
 
 const shuffleArray = (array: any[]) => {
-    for (let i = array.length - 1; i > 0; i--) {
+    let newArray = [...array];
+    for (let i = newArray.length - 1; i > 0; i--) {
         const j = Math.floor(Math.random() * (i + 1));
-        [array[i], array[j]] = [array[j], array[i]];
+        [newArray[i], newArray[j]] = [newArray[j], newArray[i]];
     }
-    return array;
+    return newArray;
 }
 
 export default function GamePage() {
@@ -66,8 +67,7 @@ export default function GamePage() {
   const [count, setCount] = useState(0)
   
   useEffect(() => {
-    const shuffledQuestions = shuffleArray([...allQuestions]);
-    setQuestions(shuffledQuestions.slice(0, 10));
+    setQuestions(shuffleArray(allQuestions).slice(0, 10));
   }, []);
 
   useEffect(() => {
@@ -145,30 +145,28 @@ export default function GamePage() {
             answers: answerPayload
         });
 
-        // Update the latest mood entry with the game response and new analysis
         const updatedMoodData = {
             ...latestMood,
-            gameResponse: answers,
-            analysis: analysis.reasoning, // The old analysis field now holds the reasoning
+            gameResponse: answerPayload,
+            analysis: analysis.reasoning,
             truthfulness: analysis.truthfulness,
             reasoning: analysis.reasoning,
         };
 
         localStorage.setItem("latestMood", JSON.stringify(updatedMoodData));
 
-        // Update the history record as well
         const history = JSON.parse(localStorage.getItem("moodHistory") || "[]");
         if (history.length > 0) {
-            history[0] = updatedMoodData; // Update the most recent entry
+            history[0] = updatedMoodData; 
             localStorage.setItem("moodHistory", JSON.stringify(history));
         }
 
       toast({
-        title: "Thank You for Your Response!",
-        description: "Your wellness data has been updated.",
+        title: "Thank You!",
+        description: "Let's have a quick chat to reflect on your answers.",
       });
 
-      router.push('/'); // Go back to the main mood page
+      router.push('/chat');
 
     } catch(error) {
         toast({
@@ -239,12 +237,10 @@ export default function GamePage() {
         <CardFooter>
           <Button className="w-full" onClick={handleSubmit} disabled={isLoading || !allQuestionsAnswered}>
             {isLoading && <Loader2 className="animate-spin" />}
-            {isLoading ? "Analyzing..." : "Submit & Finish"}
+            {isLoading ? "Analyzing..." : "Submit & Continue to Chat"}
           </Button>
         </CardFooter>
       </Card>
     </div>
   );
 }
-
-    
