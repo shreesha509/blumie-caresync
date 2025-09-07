@@ -148,9 +148,10 @@ export default function GamePage() {
         const updatedMoodData = {
             ...latestMood,
             gameResponse: answerPayload,
-            analysis: analysis.reasoning,
+            analysis: analysis.reasoning, // Keep initial analysis as fallback
             truthfulness: analysis.truthfulness,
             reasoning: analysis.reasoning,
+            recommendation: analysis.recommendation,
         };
 
         localStorage.setItem("latestMood", JSON.stringify(updatedMoodData));

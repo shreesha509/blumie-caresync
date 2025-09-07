@@ -13,7 +13,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { HeartPulse, Footprints, Activity, User as UserIcon, CheckCircle, AlertTriangle } from "lucide-react";
+import { HeartPulse, Footprints, Activity, User as UserIcon, CheckCircle, AlertTriangle, ShieldCheck } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { formatDistanceToNow } from 'date-fns';
 import { MoodDataTable } from "@/components/MoodDataTable";
@@ -25,9 +25,10 @@ export interface MoodData {
   color: string;
   analysis: string;
   timestamp: string;
-  gameResponse?: Record<string, string>; // Changed to record for multiple answers
+  gameResponse?: Record<string, string>;
   truthfulness?: "Genuine" | "Potentially Inconsistent";
   reasoning?: string;
+  recommendation?: string;
 }
 
 export default function DataPage() {
@@ -155,6 +156,18 @@ export default function DataPage() {
                   <Activity className="h-5 w-5 text-accent-foreground mt-0.5 shrink-0" />
                   <p className="font-medium">{latestMood.reasoning || latestMood.analysis}</p>
                 </div>
+                 {latestMood.recommendation && (
+                  <>
+                    <Separator />
+                    <div className="flex items-start gap-4">
+                      <ShieldCheck className="h-5 w-5 text-blue-500 mt-0.5 shrink-0" />
+                      <div>
+                        <p className="font-semibold text-accent-foreground">Warden Recommendation</p>
+                        <p className="text-sm">{latestMood.recommendation}</p>
+                      </div>
+                    </div>
+                  </>
+                )}
               </>
             ) : (
               <div className="flex items-center justify-center h-full">

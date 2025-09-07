@@ -47,6 +47,8 @@ CRITICAL ASSESSMENT:
 - If you detect a combination of responses that indicate a high-risk situation that requires immediate intervention from a caretaker, set the 'alertCaretaker' flag to true. Otherwise, set it to false.
 
 Provide a concise, one or two-sentence reasoning for your conclusion. Frame it as a professional observation.
+
+Finally, provide a single, actionable recommendation for the warden based on the overall analysis.
 `,
 });
 

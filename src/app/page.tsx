@@ -237,6 +237,7 @@ export default function Home() {
         gameResponse: {}, // Will be filled in from the game page
         truthfulness: null,
         reasoning: null,
+        recommendation: null, // Will be filled in from the game page
       };
       
       // Store the latest mood for the dashboard card and game page to use

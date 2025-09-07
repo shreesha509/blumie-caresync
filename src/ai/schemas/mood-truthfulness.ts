@@ -40,5 +40,8 @@ export const MoodTruthfulnessOutputSchema = z.object({
   alertCaretaker: z
     .boolean()
     .describe("Set to true if the student's answers indicate a high-risk situation requiring immediate intervention, otherwise false."),
+  recommendation: z
+    .string()
+    .describe("Based on the complete analysis, provide a concise, actionable recommendation for the warden. This should be a suggested next step, such as 'Recommend a casual check-in to discuss schoolwork stress,' 'Suggest monitoring social interactions,' or 'Advise scheduling a session with the school counselor for follow-up.' If no action is needed, state 'No immediate action recommended, continue normal observation.'"),
 });
 export type MoodTruthfulnessOutput = z.infer<typeof MoodTruthfulnessOutputSchema>;

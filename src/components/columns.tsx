@@ -3,7 +3,7 @@
 
 import { ColumnDef } from "@tanstack/react-table"
 import { MoodData } from "@/app/data/page"
-import { ArrowUpDown, CheckCircle, AlertTriangle } from "lucide-react"
+import { ArrowUpDown, CheckCircle, AlertTriangle, ShieldCheck } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { format } from "date-fns"
 import { Badge } from "./ui/badge"
@@ -57,6 +57,21 @@ export const columns: ColumnDef<MoodData>[] = [
     header: "Gemini Analysis",
     cell: ({ row }) => {
       return row.original.reasoning || row.original.analysis
+    }
+  },
+  {
+    accessorKey: "recommendation",
+    header: "Recommendation",
+    cell: ({ row }) => {
+      const recommendation = row.original.recommendation;
+      if (!recommendation) return <div className="text-muted-foreground/50">N/A</div>;
+
+      return (
+        <div className="flex items-center gap-2">
+            <ShieldCheck className="h-4 w-4 text-blue-500 shrink-0" />
+            <span className="font-medium">{recommendation}</span>
+        </div>
+      )
     }
   },
   {
