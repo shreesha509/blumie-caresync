@@ -18,7 +18,9 @@ import { useAuth } from "@/context/AuthContext";
 import { analyzeMood } from "@/ai/flows/mood-analysis-flow";
 import type { MoodAnalysisOutput } from "@/ai/schemas/mood-analysis";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Zap, ZapOff, Mic, MicOff } from "lucide-react";
+import { Loader2, Zap, ZapOff, Mic, MicOff, Send, Bot } from "lucide-react";
+import { studentChat } from "@/ai/flows/student-chat-flow";
+import type { StudentChatInput, StudentChatOutput } from "@/ai/schemas/student-chat";
 
 const moodColors = [
   { name: "Serene", color: "#64B5F6" },
@@ -57,6 +59,12 @@ export default function Home() {
   
   const [isRecording, setIsRecording] = useState(false);
   const speechRecognitionRef = useRef<any>(null);
+  
+  const [showChat, setShowChat] = useState(false);
+  const [chatMessage, setChatMessage] = useState("");
+  const [chatHistory, setChatHistory] = useState<{ role: 'user' | 'model', content: string }[]>([]);
+  const [isChatLoading, setIsChatLoading] = useState(false);
+  const [finalMessage, setFinalMessage] = useState("");
 
   useEffect(() => {
     // Redirect if user is logged in and is a warden
@@ -251,17 +259,17 @@ export default function Home() {
       if (bleDevice && bleCharacteristic) {
         await sendColorToDevice(selectedColor);
       }
-
+      
       setSubmittedMood({ text: moodText, color: selectedColor });
       
-      // Acknowledge submission before redirecting
       toast({
         title: "Mood Submitted!",
         description: "Now, let's play a quick game to reflect.",
       });
 
-      // Redirect to the game page for the next step
-      router.push('/game');
+      // Start the chatbot conversation after submission
+      handleChatSubmit(true);
+      setShowChat(true);
 
     } catch (error) {
        toast({
@@ -274,6 +282,44 @@ export default function Home() {
       setIsLoading(false);
     }
   };
+  
+   const handleChatSubmit = async (isFirstMessage = false) => {
+    const message = isFirstMessage ? "" : chatMessage.trim();
+    if (!isFirstMessage && !message) return;
+
+    setIsChatLoading(true);
+    const currentHistory = [...chatHistory];
+    if (!isFirstMessage) {
+        currentHistory.push({ role: 'user', content: message });
+        setChatHistory(currentHistory);
+    }
+    setChatMessage("");
+
+    try {
+        const chatInput: StudentChatInput = {
+            mood: moodText,
+            chatHistory: currentHistory,
+        };
+
+        const result: StudentChatOutput = await studentChat(chatInput);
+        
+        const newHistory = [...currentHistory, { role: 'model' as const, content: result.response }];
+        setChatHistory(newHistory);
+
+        if (result.isFinalMessage) {
+            setFinalMessage(result.finalMessage);
+        }
+
+    } catch (error) {
+        toast({
+            title: "Chat Error",
+            description: "The chatbot is currently unavailable.",
+            variant: "destructive",
+        });
+    } finally {
+        setIsChatLoading(false);
+    }
+};
 
   const handleColorWheelClick = (e: MouseEvent<HTMLDivElement>) => {
     if (!colorWheelRef.current) return;
@@ -300,6 +346,94 @@ export default function Home() {
   // This prevents brief flashes of content before redirection.
   if (!user || user.role !== 'student') {
     return null;
+  }
+  
+  if (showChat) {
+     return (
+        <div className="flex min-h-[calc(100dvh-3.5rem)] w-full flex-col items-center justify-center p-4">
+             <Card className="w-full max-w-md animate-in fade-in slide-in-from-bottom-5 bg-card/80 backdrop-blur-sm">
+                <CardHeader className="text-center">
+                    <CardTitle className="font-headline text-2xl flex items-center justify-center gap-2">
+                        <Bot /> A Moment to Reflect
+                    </CardTitle>
+                     <CardDescription>
+                       Here's a space to talk things out.
+                    </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                     <div className="h-64 space-y-4 overflow-y-auto rounded-md border bg-background/50 p-4">
+                        {chatHistory.map((msg, index) => (
+                            <div
+                                key={index}
+                                className={cn(
+                                    "flex items-start gap-3",
+                                    msg.role === 'user' ? 'justify-end' : 'justify-start'
+                                )}
+                            >
+                                {msg.role === 'model' && <Bot className="shrink-0" />}
+                                <div
+                                    className={cn(
+                                        "max-w-xs rounded-lg px-3 py-2 text-sm",
+                                        msg.role === 'user' ? 'bg-primary text-primary-foreground' : 'bg-muted'
+                                    )}
+                                >
+                                    {msg.content}
+                                </div>
+                            </div>
+                        ))}
+                         {isChatLoading && (
+                           <div className="flex justify-start gap-3">
+                               <Bot className="shrink-0" />
+                               <div className="bg-muted rounded-lg px-3 py-2 text-sm">
+                                   <Loader2 className="animate-spin" />
+                               </div>
+                           </div>
+                        )}
+                    </div>
+                     {finalMessage ? (
+                         <div className="rounded-lg border-l-4 border-accent bg-accent/10 p-4 text-sm text-accent-foreground">
+                            <p className="font-bold">A thought for you:</p>
+                            <p>{finalMessage}</p>
+                        </div>
+                    ) : (
+                        <div className="relative">
+                            <Textarea
+                                placeholder="Say anything..."
+                                value={chatMessage}
+                                onChange={(e) => setChatMessage(e.target.value)}
+                                onKeyDown={(e) => {
+                                    if (e.key === 'Enter' && !e.shiftKey) {
+                                        e.preventDefault();
+                                        handleChatSubmit();
+                                    }
+                                }}
+                                disabled={isChatLoading}
+                                className="pr-12"
+                                rows={2}
+                            />
+                            <Button
+                                size="icon"
+                                variant="ghost"
+                                className="absolute right-2 top-1/2 -translate-y-1/2"
+                                onClick={() => handleChatSubmit()}
+                                disabled={isChatLoading}
+                            >
+                                <Send />
+                            </Button>
+                        </div>
+                    )}
+                </CardContent>
+                <CardFooter>
+                    <Button
+                        className="w-full"
+                        onClick={() => router.push('/game')}
+                    >
+                        Continue to Game
+                    </Button>
+                </CardFooter>
+            </Card>
+        </div>
+    );
   }
 
   return (
@@ -376,7 +510,7 @@ export default function Home() {
         <CardFooter>
           <Button onClick={handleSubmit} className="w-full" variant="default" disabled={isLoading}>
             {isLoading && <Loader2 className="animate-spin" />}
-            {isLoading ? "Analyzing..." : "Continue to Game"}
+            {isLoading ? "Submit & Chat" : "Submit & Chat"}
           </Button>
         </CardFooter>
       </Card>
