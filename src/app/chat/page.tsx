@@ -16,7 +16,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/context/AuthContext";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Send, Bot, Sparkles } from "lucide-react";
+import { Loader2, Send, Bot } from "lucide-react";
 import { storyChat } from "@/ai/flows/story-chat-flow";
 import type { StoryChatInput, StoryChatOutput } from "@/ai/schemas/story-chat";
 
@@ -29,7 +29,6 @@ export default function ChatPage() {
     const [chatMessage, setChatMessage] = useState("");
     const [chatHistory, setChatHistory] = useState<{ role: 'user' | 'model', content: string }[]>([]);
     const [isChatLoading, setIsChatLoading] = useState(false);
-    const [finalMessage, setFinalMessage] = useState("");
     const chatContainerRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
@@ -94,10 +93,6 @@ export default function ChatPage() {
             const newHistory = [...currentHistory, { role: 'model' as const, content: result.response }];
             setChatHistory(newHistory);
 
-            if (result.isFinalMessage) {
-                setFinalMessage(result.finalMessage);
-            }
-
         } catch (error) {
             toast({
                 title: "Chat Error",
@@ -125,7 +120,7 @@ export default function ChatPage() {
                     </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                     <div ref={chatContainerRef} className="h-80 space-y-4 overflow-y-auto rounded-md border bg-background/50 p-4">
+                     <div ref={chatContainerRef} className="h-96 space-y-4 overflow-y-auto rounded-md border bg-background/50 p-4">
                         {chatHistory.map((msg, index) => (
                             <div
                                 key={index}
@@ -145,7 +140,7 @@ export default function ChatPage() {
                                 </div>
                             </div>
                         ))}
-                         {isChatLoading && chatHistory.length > 0 && (
+                         {isChatLoading && (
                            <div className="flex justify-start gap-3">
                                <Bot className="shrink-0 text-primary" />
                                <div className="bg-muted rounded-lg px-3 py-2 text-sm">
@@ -159,38 +154,31 @@ export default function ChatPage() {
                              </div>
                          )}
                     </div>
-                     {finalMessage ? (
-                         <div className="rounded-lg border-l-4 border-primary bg-primary/10 p-4 text-sm text-primary-foreground/90">
-                            <p className="font-bold flex items-center gap-2"><Sparkles className="text-primary" /> A thought for you:</p>
-                            <p className="pt-2">{finalMessage}</p>
-                        </div>
-                    ) : (
-                        <div className="relative">
-                            <Textarea
-                                placeholder="Say anything..."
-                                value={chatMessage}
-                                onChange={(e) => setChatMessage(e.target.value)}
-                                onKeyDown={(e) => {
-                                    if (e.key === 'Enter' && !e.shiftKey) {
-                                        e.preventDefault();
-                                        handleChatSubmit(false, latestMood);
-                                    }
-                                }}
-                                disabled={isChatLoading || chatHistory.length === 0}
-                                className="pr-12"
-                                rows={2}
-                            />
-                            <Button
-                                size="icon"
-                                variant="ghost"
-                                className="absolute right-2 top-1/2 -translate-y-1/2"
-                                onClick={() => handleChatSubmit(false, latestMood)}
-                                disabled={isChatLoading || chatHistory.length === 0}
-                            >
-                                <Send />
-                            </Button>
-                        </div>
-                    )}
+                    <div className="relative">
+                        <Textarea
+                            placeholder="Say anything..."
+                            value={chatMessage}
+                            onChange={(e) => setChatMessage(e.target.value)}
+                            onKeyDown={(e) => {
+                                if (e.key === 'Enter' && !e.shiftKey) {
+                                    e.preventDefault();
+                                    handleChatSubmit(false, latestMood);
+                                }
+                            }}
+                            disabled={isChatLoading || chatHistory.length === 0}
+                            className="pr-12"
+                            rows={2}
+                        />
+                        <Button
+                            size="icon"
+                            variant="ghost"
+                            className="absolute right-2 top-1/2 -translate-y-1/2"
+                            onClick={() => handleChatSubmit(false, latestMood)}
+                            disabled={isChatLoading || chatHistory.length === 0 || !chatMessage}
+                        >
+                            <Send />
+                        </Button>
+                    </div>
                 </CardContent>
                 <CardFooter>
                     <Button
@@ -204,4 +192,3 @@ export default function ChatPage() {
         </div>
     );
 }
-
