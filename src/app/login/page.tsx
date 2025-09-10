@@ -52,7 +52,7 @@ export default function LoginPage() {
 
   const handleWardenLogin = () => {
     if (wardenPassword === "bnmit") {
-      login("warden");
+      login("warden", { name: "Warden" });
     } else {
       toast({
         title: "Incorrect Password",
