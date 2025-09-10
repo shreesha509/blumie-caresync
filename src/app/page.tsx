@@ -131,46 +131,58 @@ export default function Home() {
     }
     
     setIsLoading(true);
+
+    const moodData = {
+      studentName: user?.name,
+      text: moodText,
+      color: selectedColor,
+      analysis: "Analysis pending...", // Placeholder
+      timestamp: new Date().toISOString(),
+      gameResponse: {},
+      truthfulness: null,
+      reasoning: null,
+      recommendation: null,
+    };
+    
+    // Store the initial data immediately.
+    localStorage.setItem("latestMood", JSON.stringify(moodData));
+    const history = JSON.parse(localStorage.getItem("moodHistory") || "[]");
+    history.unshift(moodData);
+    localStorage.setItem("moodHistory", JSON.stringify(history));
+
+    toast({
+      title: "Mood Submitted!",
+      description: "Now, let's play a quick game to understand you better.",
+    });
+
+    // Navigate immediately for a smoother experience.
+    router.push('/game');
+
     try {
-      // Perform the initial simple analysis first.
+      // Perform the AI analysis in the background.
       const result: MoodAnalysisOutput = await analyzeMood({ mood: moodText });
-      const moodData = {
-        studentName: user?.name,
-        text: moodText,
-        color: selectedColor,
+      const updatedMoodData = {
+        ...moodData,
         analysis: result.analysis,
-        timestamp: new Date().toISOString(),
-        gameResponse: {}, // Will be filled in from the game page
-        truthfulness: null,
-        reasoning: null,
-        recommendation: null, // Will be filled in from the game page
       };
       
-      // Store the latest mood for the dashboard card and game page to use
-      localStorage.setItem("latestMood", JSON.stringify(moodData));
-      
-      // Add the initial record to history. The game page will update this record.
-      const history = JSON.parse(localStorage.getItem("moodHistory") || "[]");
-      history.unshift(moodData);
-      localStorage.setItem("moodHistory", JSON.stringify(history));
-
-      // TODO: Send color to Firebase Realtime Database
-      
-      toast({
-        title: "Mood Submitted!",
-        description: "Now, let's play a quick game to understand you better.",
-      });
-
-      router.push('/game');
+      // Update localStorage with the analysis result.
+      localStorage.setItem("latestMood", JSON.stringify(updatedMoodData));
+      const updatedHistory = JSON.parse(localStorage.getItem("moodHistory") || "[]");
+      if (updatedHistory.length > 0 && updatedHistory[0].timestamp === moodData.timestamp) {
+        updatedHistory[0] = updatedMoodData;
+        localStorage.setItem("moodHistory", JSON.stringify(updatedHistory));
+      }
 
     } catch (error) {
        toast({
-        title: "Analysis Failed",
-        description: "Could not analyze the mood. Please try again.",
+        title: "Background Analysis Failed",
+        description: "Could not analyze the mood in the background.",
         variant: "destructive",
       });
       console.error(error);
     } finally {
+      // Set loading to false once everything, including background tasks, is done.
       setIsLoading(false);
     }
   };
@@ -270,3 +282,5 @@ export default function Home() {
     </div>
   );
 }
+
+    
