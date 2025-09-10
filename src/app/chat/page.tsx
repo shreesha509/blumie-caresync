@@ -44,7 +44,7 @@ export default function ChatPage() {
                 const moodData = JSON.parse(storedMood);
                 setLatestMood(moodData);
                 // Start the chat as soon as the page loads with mood data
-                handleChatSubmit(true, moodData);
+                startInitialChat(moodData);
             } else {
                  toast({
                     title: "No data found",
@@ -71,22 +71,48 @@ export default function ChatPage() {
         }
     }, [chatHistory, isChatLoading]);
 
-    const handleChatSubmit = async (isFirstMessage = false, moodData: any) => {
-        const message = isFirstMessage ? "" : chatMessage.trim();
-        if (!isFirstMessage && !message) return;
+    const startInitialChat = async (moodData: any) => {
+        setIsChatLoading(true);
+        try {
+             const chatInput: StoryChatInput = {
+                mood: moodData.text,
+                gameAnswers: moodData.gameResponse,
+                chatHistory: [],
+            };
+
+            const result: StoryChatOutput = await storyChat(chatInput);
+            setChatHistory([{ role: 'model', content: result.response }]);
+
+             if (result.isFinalMessage) {
+                setIsConversationOver(true);
+                setFinalThought(result.finalThought || "Take care.");
+            }
+
+        } catch (error) {
+             toast({
+                title: "Chat Error",
+                description: "The chatbot is currently unavailable.",
+                variant: "destructive",
+            });
+        } finally {
+            setIsChatLoading(false);
+        }
+    }
+
+
+    const handleChatSubmit = async () => {
+        const message = chatMessage.trim();
+        if (!message) return;
 
         setIsChatLoading(true);
-        const currentHistory = [...chatHistory];
-        if (!isFirstMessage) {
-            currentHistory.push({ role: 'user', content: message });
-            setChatHistory(currentHistory);
-        }
+        const currentHistory = [...chatHistory, { role: 'user' as const, content: message }];
+        setChatHistory(currentHistory);
         setChatMessage("");
 
         try {
             const chatInput: StoryChatInput = {
-                mood: moodData.text,
-                gameAnswers: moodData.gameResponse,
+                mood: latestMood.text,
+                gameAnswers: latestMood.gameResponse,
                 chatHistory: currentHistory,
             };
 
@@ -179,7 +205,7 @@ export default function ChatPage() {
                                 onKeyDown={(e) => {
                                     if (e.key === 'Enter' && !e.shiftKey) {
                                         e.preventDefault();
-                                        handleChatSubmit(false, latestMood);
+                                        handleChatSubmit();
                                     }
                                 }}
                                 disabled={isChatLoading || chatHistory.length === 0}
@@ -190,7 +216,7 @@ export default function ChatPage() {
                                 size="icon"
                                 variant="ghost"
                                 className="absolute right-2 top-1/2 -translate-y-1/2"
-                                onClick={() => handleChatSubmit(false, latestMood)}
+                                onClick={() => handleChatSubmit()}
                                 disabled={isChatLoading || chatHistory.length === 0 || !chatMessage}
                             >
                                 <Send />
