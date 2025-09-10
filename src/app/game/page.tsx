@@ -67,7 +67,8 @@ export default function GamePage() {
   const [count, setCount] = useState(0)
   
   useEffect(() => {
-    setQuestions(shuffleArray(allQuestions).slice(0, 10));
+    const shuffled = shuffleArray(allQuestions).slice(0, 10);
+    setQuestions(shuffled);
   }, []);
 
   useEffect(() => {
@@ -120,69 +121,81 @@ export default function GamePage() {
     }
 
     setIsLoading(true);
-    try {
-        const storedMoodData = localStorage.getItem("latestMood");
-        if (!storedMoodData) throw new Error("Mood data not found.");
-        
-        const latestMood = JSON.parse(storedMoodData);
-        
-        const answerPayload = {
-            answer1: answers[questions[0].id],
-            answer2: answers[questions[1].id],
-            answer3: answers[questions[2].id],
-            answer4: answers[questions[3].id],
-            answer5: answers[questions[4].id],
-            answer6: answers[questions[5].id],
-            answer7: answers[questions[6].id],
-            answer8: answers[questions[7].id],
-            answer9: answers[questions[8].id],
-            answer10: answers[questions[9].id],
-        };
+    
+    const storedMoodData = localStorage.getItem("latestMood");
+    if (!storedMoodData) {
+        toast({ title: "Error", description: "Mood data not found.", variant: "destructive" });
+        setIsLoading(false);
+        return;
+    }
+    
+    const latestMood = JSON.parse(storedMoodData);
+    
+    const answerPayload = {
+        answer1: answers[questions[0].id] || "",
+        answer2: answers[questions[1].id] || "",
+        answer3: answers[questions[2].id] || "",
+        answer4: answers[questions[3].id] || "",
+        answer5: answers[questions[4].id] || "",
+        answer6: answers[questions[5].id] || "",
+        answer7: answers[questions[6].id] || "",
+        answer8: answers[questions[7].id] || "",
+        answer9: answers[questions[8].id] || "",
+        answer10: answers[questions[9].id] || "",
+    };
 
+    // Store game answers and navigate immediately
+    const intermediateMoodData = {
+        ...latestMood,
+        gameResponse: answerPayload,
+    };
+    localStorage.setItem("latestMood", JSON.stringify(intermediateMoodData));
+    
+    toast({
+      title: "Thank You!",
+      description: "Let's have a quick chat to reflect on your answers.",
+    });
+
+    router.push('/chat');
+
+    // Perform analysis in the background
+    try {
         const analysis: MoodTruthfulnessOutput = await analyzeMoodTruthfulness({
             studentName: user.name,
             mood: latestMood.text,
             answers: answerPayload
         });
 
-        const updatedMoodData = {
-            ...latestMood,
-            gameResponse: answerPayload,
+        const finalMoodData = {
+            ...intermediateMoodData,
             analysis: analysis.reasoning, // Keep initial analysis as fallback
             truthfulness: analysis.truthfulness,
             reasoning: analysis.reasoning,
             recommendation: analysis.recommendation,
         };
 
-        localStorage.setItem("latestMood", JSON.stringify(updatedMoodData));
+        localStorage.setItem("latestMood", JSON.stringify(finalMoodData));
 
         const history = JSON.parse(localStorage.getItem("moodHistory") || "[]");
-        if (history.length > 0) {
-            history[0] = updatedMoodData; 
+        if (history.length > 0 && history[0].timestamp === finalMoodData.timestamp) {
+            history[0] = finalMoodData; 
             localStorage.setItem("moodHistory", JSON.stringify(history));
         }
 
-      toast({
-        title: "Thank You!",
-        description: "Let's have a quick chat to reflect on your answers.",
-      });
-
-      router.push('/chat');
-
     } catch(error) {
         toast({
-            title: "Analysis Failed",
-            description: "Could not process your response. Please try again.",
+            title: "Background Analysis Failed",
+            description: "Could not process your response in the background.",
             variant: "destructive",
         });
-        console.error(error);
+        console.error("Background analysis error:", error);
     } finally {
         setIsLoading(false);
     }
   };
   
   if (!user || user.role !== 'student' || questions.length === 0) {
-    return null;
+    return <div className="flex min-h-[calc(100dvh-3.5rem)] w-full flex-col items-center justify-center"><Loader2 className="animate-spin" /></div>;
   }
 
   return (
@@ -238,7 +251,7 @@ export default function GamePage() {
         <CardFooter>
           <Button className="w-full" onClick={handleSubmit} disabled={isLoading || !allQuestionsAnswered}>
             {isLoading && <Loader2 className="animate-spin" />}
-            {isLoading ? "Analyzing..." : "Submit & Continue to Chat"}
+            {isLoading ? "Preparing Chat..." : "Submit & Continue to Chat"}
           </Button>
         </CardFooter>
       </Card>
