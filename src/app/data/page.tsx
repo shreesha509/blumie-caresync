@@ -13,29 +13,23 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { HeartPulse, Footprints, Activity, User as UserIcon, CheckCircle, AlertTriangle, ShieldCheck } from "lucide-react";
+import { HeartPulse, Footprints, Activity, User as UserIcon } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { formatDistanceToNow } from 'date-fns';
-import { MoodDataTable } from "@/components/MoodDataTable";
-import { columns } from "@/components/columns";
+import { database } from "@/lib/firebase";
+import { ref, onValue } from "firebase/database";
 
-export interface MoodData {
-  studentName?: string;
-  text: string;
-  color: string;
-  analysis: string;
+export interface BlumieData {
+  student_id: string;
+  mood_name: string;
+  mood_color: string;
   timestamp: string;
-  gameResponse?: Record<string, string>;
-  truthfulness?: "Genuine" | "Potentially Inconsistent";
-  reasoning?: string;
-  recommendation?: string;
 }
 
 export default function DataPage() {
   const { user } = useAuth();
   const router = useRouter();
-  const [latestMood, setLatestMood] = useState<MoodData | null>(null);
-  const [moodHistory, setMoodHistory] = useState<MoodData[]>([]);
+  const [latestMood, setLatestMood] = useState<BlumieData | null>(null);
 
   useEffect(() => {
     if (user && user.role !== "warden") {
@@ -44,38 +38,23 @@ export default function DataPage() {
   }, [user, router]);
   
   useEffect(() => {
-    // This effect runs only on the client
-    const storedMood = localStorage.getItem("latestMood");
-    if (storedMood) {
-      setLatestMood(JSON.parse(storedMood));
-    }
-    const storedHistory = localStorage.getItem("moodHistory");
-    if (storedHistory) {
-      setMoodHistory(JSON.parse(storedHistory));
-    }
+    const moodRef = ref(database, 'blumie');
+    
+    const unsubscribe = onValue(moodRef, (snapshot) => {
+      const data = snapshot.val();
+      if (data) {
+        setLatestMood(data);
+      }
+    });
 
-    const handleStorageChange = () => {
-       const updatedMood = localStorage.getItem("latestMood");
-       if (updatedMood) {
-         setLatestMood(JSON.parse(updatedMood));
-       }
-       const updatedHistory = localStorage.getItem("moodHistory");
-       if (updatedHistory) {
-         setMoodHistory(JSON.parse(updatedHistory));
-       }
-    };
-
-    window.addEventListener('storage', handleStorageChange);
-    return () => window.removeEventListener('storage', handleStorageChange);
+    // Cleanup subscription on unmount
+    return () => unsubscribe();
   }, []);
 
-  // If the user is not loaded yet, or is not a warden, render nothing.
-  // This prevents content flashes and protects the route.
   if (!user || user.role !== 'warden') {
     return null;
   }
 
-  // This JSX will only be rendered if the user is a warden.
   return (
     <div className="container mx-auto py-10 animate-in fade-in">
       <div className="flex flex-col items-center text-center">
@@ -132,42 +111,13 @@ export default function DataPage() {
               <>
                  <div className="flex items-center gap-4">
                   <UserIcon className="h-5 w-5 text-accent-foreground shrink-0" />
-                  <p className="font-bold text-lg">{latestMood.studentName || 'Unknown Student'}</p>
+                  <p className="font-bold text-lg">{latestMood.student_id || 'Unknown Student'}</p>
                 </div>
                 <Separator />
                 <div className="flex items-start gap-4">
-                   <div className="w-4 h-4 rounded-full mt-1.5 shrink-0" style={{ backgroundColor: latestMood.color }} />
-                  <p className="text-sm text-muted-foreground italic">"{latestMood.text}"</p>
+                   <div className="w-4 h-4 rounded-full mt-1.5 shrink-0" style={{ backgroundColor: latestMood.mood_color }} />
+                  <p className="text-sm text-muted-foreground italic">"{latestMood.mood_name}"</p>
                 </div>
-                <Separator />
-                 {latestMood.truthfulness && (
-                  <>
-                    <div className="flex items-start gap-4">
-                        {latestMood.truthfulness === 'Genuine' 
-                            ? <CheckCircle className="h-5 w-5 text-green-500 mt-0.5 shrink-0" />
-                            : <AlertTriangle className="h-5 w-5 text-yellow-500 mt-0.5 shrink-0" />
-                        }
-                        <p className="font-medium">{latestMood.truthfulness}</p>
-                    </div>
-                    <Separator />
-                  </>
-                )}
-                <div className="flex items-start gap-4">
-                  <Activity className="h-5 w-5 text-accent-foreground mt-0.5 shrink-0" />
-                  <p className="font-medium">{latestMood.reasoning || latestMood.analysis}</p>
-                </div>
-                 {latestMood.recommendation && (
-                  <>
-                    <Separator />
-                    <div className="flex items-start gap-4">
-                      <ShieldCheck className="h-5 w-5 text-blue-500 mt-0.5 shrink-0" />
-                      <div>
-                        <p className="font-semibold text-accent-foreground">Warden Recommendation</p>
-                        <p className="text-sm">{latestMood.recommendation}</p>
-                      </div>
-                    </div>
-                  </>
-                )}
               </>
             ) : (
               <div className="flex items-center justify-center h-full">
@@ -189,7 +139,7 @@ export default function DataPage() {
           <CardDescription>A complete log of all student mood submissions.</CardDescription>
         </CardHeader>
         <CardContent>
-            <MoodDataTable columns={columns} data={moodHistory} />
+            <p className="text-muted-foreground text-center py-8">Mood history table is under construction.</p>
         </CardContent>
       </Card>
     </div>

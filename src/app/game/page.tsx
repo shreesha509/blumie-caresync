@@ -144,7 +144,6 @@ export default function GamePage() {
         answer10: answers[questions[9].id] || "",
     };
 
-    // Store game answers and navigate immediately
     const intermediateMoodData = {
         ...latestMood,
         gameResponse: answerPayload,
@@ -168,19 +167,14 @@ export default function GamePage() {
 
         const finalMoodData = {
             ...intermediateMoodData,
-            analysis: analysis.reasoning, // Keep initial analysis as fallback
+            analysis: analysis.reasoning,
             truthfulness: analysis.truthfulness,
             reasoning: analysis.reasoning,
             recommendation: analysis.recommendation,
         };
+        // This is a temporary storage for warden dashboard until full DB integration
+        localStorage.setItem("finalAnalysis", JSON.stringify(finalMoodData));
 
-        localStorage.setItem("latestMood", JSON.stringify(finalMoodData));
-
-        const history = JSON.parse(localStorage.getItem("moodHistory") || "[]");
-        if (history.length > 0 && history[0].timestamp === finalMoodData.timestamp) {
-            history[0] = finalMoodData; 
-            localStorage.setItem("moodHistory", JSON.stringify(history));
-        }
 
     } catch(error) {
         toast({

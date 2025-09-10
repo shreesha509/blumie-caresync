@@ -19,6 +19,8 @@ import { analyzeMood } from "@/ai/flows/mood-analysis-flow";
 import type { MoodAnalysisOutput } from "@/ai/schemas/mood-analysis";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Mic, MicOff } from "lucide-react";
+import { database } from "@/lib/firebase";
+import { ref, set } from "firebase/database";
 
 const moodColors = [
   { name: "Serene", color: "#64B5F6" },
@@ -133,22 +135,35 @@ export default function Home() {
     setIsLoading(true);
 
     const moodData = {
-      studentName: user?.name,
-      text: moodText,
-      color: selectedColor,
-      analysis: "Analysis pending...", // Placeholder
+      student_id: user?.name, // Using name as a simple student ID
+      mood_name: moodText,
+      mood_color: selectedColor,
       timestamp: new Date().toISOString(),
-      gameResponse: {},
-      truthfulness: null,
-      reasoning: null,
-      recommendation: null,
     };
     
-    // Store the initial data immediately.
-    localStorage.setItem("latestMood", JSON.stringify(moodData));
-    const history = JSON.parse(localStorage.getItem("moodHistory") || "[]");
-    history.unshift(moodData);
-    localStorage.setItem("moodHistory", JSON.stringify(history));
+    const tempStorageForGame = {
+        text: moodText,
+        color: selectedColor,
+        studentName: user?.name,
+        timestamp: moodData.timestamp,
+    };
+    
+    // Store data needed for subsequent pages in localStorage.
+    // This will be cleared after the full flow is complete.
+    localStorage.setItem("latestMood", JSON.stringify(tempStorageForGame));
+    
+    try {
+        await set(ref(database, 'blumie'), moodData);
+    } catch (error) {
+         toast({
+            title: "Database Error",
+            description: "Could not save your mood. Please try again.",
+            variant: "destructive",
+        });
+        setIsLoading(false);
+        return;
+    }
+
 
     toast({
       title: "Mood Submitted!",
@@ -161,19 +176,11 @@ export default function Home() {
     try {
       // Perform the AI analysis in the background.
       const result: MoodAnalysisOutput = await analyzeMood({ mood: moodText });
-      const updatedMoodData = {
-        ...moodData,
-        analysis: result.analysis,
-      };
       
       // Update localStorage with the analysis result.
-      localStorage.setItem("latestMood", JSON.stringify(updatedMoodData));
-      const updatedHistory = JSON.parse(localStorage.getItem("moodHistory") || "[]");
-      if (updatedHistory.length > 0 && updatedHistory[0].timestamp === moodData.timestamp) {
-        updatedHistory[0] = updatedMoodData;
-        localStorage.setItem("moodHistory", JSON.stringify(updatedHistory));
-      }
-
+      const tempStorage = JSON.parse(localStorage.getItem("latestMood") || "{}");
+      tempStorage.analysis = result.analysis;
+      localStorage.setItem("latestMood", JSON.stringify(tempStorage));
     } catch (error) {
        toast({
         title: "Background Analysis Failed",
@@ -215,13 +222,10 @@ export default function Home() {
   }
 
   return (
-    <div
-      className="flex min-h-[calc(100dvh-3.5rem)] w-full flex-col items-center justify-center p-4 transition-colors duration-1000"
-    >
-      <div className="text-center mb-4">
-        <h1 className="text-3xl font-bold font-headline tracking-tight">Welcome, {user.name}!</h1>
-        <p className="text-lg text-muted-foreground">Let's take a moment to check in.</p>
-      </div>
+    <div className="flex min-h-[calc(100dvh-3.5rem)] w-full flex-col items-center justify-center p-4 transition-colors duration-1000">
+        <div className="mb-4 text-center">
+            <h1 className="text-3xl font-bold font-headline tracking-tight">Welcome, {user.name}!</h1>
+        </div>
       <Card className="w-full max-w-md animate-in fade-in slide-in-from-bottom-5 bg-card/80 backdrop-blur-sm">
         <CardHeader>
             <div>
@@ -282,5 +286,3 @@ export default function Home() {
     </div>
   );
 }
-
-    
