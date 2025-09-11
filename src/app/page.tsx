@@ -131,11 +131,19 @@ export default function Home() {
       });
       return;
     }
+     if (!user || !user.name) {
+      toast({
+        title: "User not found",
+        description: "Could not identify the current user. Please log in again.",
+        variant: "destructive",
+      });
+      return;
+    }
     
     setIsLoading(true);
 
     const moodData = {
-      student_id: user?.name, // Using name as a simple student ID
+      student_id: user.name, // Using name as a simple student ID
       mood_name: moodText,
       mood_color: selectedColor,
       timestamp: new Date().toISOString(),
@@ -144,7 +152,7 @@ export default function Home() {
     const tempStorageForGame = {
         text: moodText,
         color: selectedColor,
-        studentName: user?.name,
+        studentName: user.name,
         timestamp: moodData.timestamp,
     };
     
