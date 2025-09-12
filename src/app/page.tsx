@@ -19,7 +19,6 @@ import { useToast } from "@/hooks/use-toast";
 import { Loader2, Mic, MicOff } from "lucide-react";
 import { database } from "@/lib/firebase";
 import { ref, set } from "firebase/database";
-import { analyzeMood } from "@/ai/flows/mood-analysis-flow";
 
 const moodColors = [
   { name: "Serene", color: "#64B5F6" },
@@ -102,7 +101,7 @@ export default function Home() {
     }
   };
 
-  const handleSubmit = async () => {
+  const handleSubmit = () => {
     if (isRecording) {
       speechRecognitionRef.current.stop();
     }
@@ -122,29 +121,19 @@ export default function Home() {
       timestamp: new Date().toISOString(),
     };
     
-    try {
-        // Save initial data to Firebase
-        await set(ref(database, 'blumie'), moodData);
+    // Dispatch data to Firebase without waiting
+    set(ref(database, 'blumie'), moodData);
 
-        // Store data for the next pages
-        localStorage.setItem("latestMood", JSON.stringify(moodData));
+    // Store data for the next pages
+    localStorage.setItem("latestMood", JSON.stringify(moodData));
 
-        toast({
-          title: "Mood Submitted!",
-          description: "Now, let's play a quick game.",
-        });
+    toast({
+      title: "Mood Submitted!",
+      description: "Now, let's play a quick game.",
+    });
 
-        // Immediately navigate for a responsive UI
-        router.push('/game');
-
-    } catch (error) {
-        console.error("Submission Error:", error);
-        toast({
-            title: "Error",
-            description: "Could not save your mood.",
-            variant: "destructive",
-        });
-    }
+    // Immediately navigate for a responsive UI
+    router.push('/game');
   };
 
   const handleColorWheelClick = (e: MouseEvent<HTMLDivElement>) => {
