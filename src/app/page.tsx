@@ -15,8 +15,6 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/context/AuthContext";
-import { analyzeMood } from "@/ai/flows/mood-analysis-flow";
-import type { MoodAnalysisOutput } from "@/ai/schemas/mood-analysis";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Mic, MicOff } from "lucide-react";
 import { database } from "@/lib/firebase";
@@ -161,6 +159,15 @@ export default function Home() {
     
     try {
         await set(ref(database, 'blumie'), moodData);
+
+        toast({
+          title: "Mood Submitted!",
+          description: "Now, let's play a quick game to understand you better.",
+        });
+
+        // Navigate immediately for a smoother experience.
+        router.push('/game');
+
     } catch (error) {
          toast({
             title: "Database Error",
@@ -168,36 +175,6 @@ export default function Home() {
             variant: "destructive",
         });
         setIsLoading(false);
-        return;
-    }
-
-
-    toast({
-      title: "Mood Submitted!",
-      description: "Now, let's play a quick game to understand you better.",
-    });
-
-    // Navigate immediately for a smoother experience.
-    router.push('/game');
-
-    try {
-      // Perform the AI analysis in the background.
-      const result: MoodAnalysisOutput = await analyzeMood({ mood: moodText });
-      
-      // Update localStorage with the analysis result.
-      const tempStorage = JSON.parse(localStorage.getItem("latestMood") || "{}");
-      tempStorage.analysis = result.analysis;
-      localStorage.setItem("latestMood", JSON.stringify(tempStorage));
-    } catch (error) {
-       toast({
-        title: "Background Analysis Failed",
-        description: "Could not analyze the mood in the background.",
-        variant: "destructive",
-      });
-      console.error(error);
-    } finally {
-      // Set loading to false once everything, including background tasks, is done.
-      setIsLoading(false);
     }
   };
 
@@ -286,7 +263,7 @@ export default function Home() {
         <CardFooter>
           <Button onClick={handleSubmit} className="w-full" variant="default" disabled={isLoading}>
             {isLoading && <Loader2 className="animate-spin" />}
-            {isLoading ? "Analyzing..." : "Submit & Continue"}
+            {isLoading ? "Submitting..." : "Submit & Continue"}
           </Button>
         </CardFooter>
       </Card>
