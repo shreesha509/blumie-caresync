@@ -121,18 +121,38 @@ export default function Home() {
       timestamp: new Date().toISOString(),
     };
     
-    // Dispatch data to Firebase without waiting
-    set(ref(database, 'blumie'), moodData);
+    // Dispatch data to Firebase without waiting for the promise to resolve,
+    // but include a .catch to handle potential errors gracefully.
+    set(ref(database, 'blumie'), moodData)
+      .then(() => {
+        console.log("Mood data successfully dispatched to Firebase.");
+        // If you wanted to show a success toast *only after* Firebase confirms,
+        // you'd move the "Mood Submitted!" toast here and also await this 'set' operation.
+        // For immediate UI responsiveness, we'll keep the success toast below this block.
+      })
+      .catch(error => {
+        // Handle errors if the Firebase write operation fails
+        console.error("Error writing mood data to Realtime Database:", error);
+        toast({
+          title: "Submission Failed",
+          description: "Could not submit mood to Firebase. Please try again.",
+          variant: "destructive",
+        });
+        // Optionally, if the Firebase write is critical, you might want to stop
+        // navigation here to avoid leading the user to a game based on unsaved data.
+        // return; // Uncomment this if you want to prevent navigation on Firebase write failure.
+      });
 
-    // Store data for the next pages
+    // Store data for the next pages (this happens immediately regardless of Firebase write success)
     localStorage.setItem("latestMood", JSON.stringify(moodData));
 
+    // Provide immediate positive feedback to the user
     toast({
       title: "Mood Submitted!",
       description: "Now, let's play a quick game.",
     });
 
-    // Immediately navigate for a responsive UI
+    // Immediately navigate for a responsive UI (this happens even if Firebase write fails silently)
     router.push('/game');
   };
 
