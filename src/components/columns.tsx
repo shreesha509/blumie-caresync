@@ -3,7 +3,7 @@
 
 import { ColumnDef } from "@tanstack/react-table"
 import { MoodData } from "@/app/data/page" // Adjusted to MoodData
-import { ArrowUpDown, CheckCircle2, AlertTriangle } from "lucide-react"
+import { ArrowUpDown, CheckCircle2, AlertTriangle, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { format } from "date-fns"
 import { Badge } from "@/components/ui/badge"
@@ -39,6 +39,15 @@ export const columns: ColumnDef<MoodData>[] = [
       const truthfulness = row.original.truthfulness;
       if (!truthfulness) return <span className="text-muted-foreground">N/A</span>;
       
+      if (truthfulness === "Processing...") {
+        return (
+           <Badge variant="outline" className="flex items-center gap-1.5">
+            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            Processing...
+          </Badge>
+        )
+      }
+      
       const isGenuine = truthfulness === "Genuine";
       
       return (
@@ -54,6 +63,9 @@ export const columns: ColumnDef<MoodData>[] = [
     header: "AI Reasoning",
     cell: ({ row }) => {
        const reasoning = row.original.reasoning;
+       if (!row.original.truthfulness || row.original.truthfulness === "Processing...") {
+         return <span className="text-muted-foreground">...</span>
+       }
        return <div className="text-sm max-w-xs truncate">{reasoning || "N/A"}</div>
     }
   },
@@ -62,6 +74,9 @@ export const columns: ColumnDef<MoodData>[] = [
     header: "AI Recommendation",
      cell: ({ row }) => {
        const recommendation = row.original.recommendation;
+       if (!row.original.truthfulness || row.original.truthfulness === "Processing...") {
+         return <span className="text-muted-foreground">...</span>
+       }
        return <div className="text-sm font-semibold max-w-xs truncate">{recommendation || "N/A"}</div>
     }
   },

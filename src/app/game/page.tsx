@@ -152,6 +152,10 @@ export default function GamePage() {
         gameResponse: answerPayload,
     };
     localStorage.setItem("latestMood", JSON.stringify(intermediateMoodData));
+
+    // --- QUICK FIX: Set processing status in Firebase immediately ---
+    const moodRef = ref(database, 'blumie');
+    await update(moodRef, { truthfulness: "Processing..." });
     
     toast({
       title: "Thank You!",
@@ -160,7 +164,7 @@ export default function GamePage() {
 
     router.push('/chat');
 
-    // Perform analysis in the background and update Firebase
+    // --- Perform analysis in the background ---
     try {
         const analysis: MoodTruthfulnessOutput = await analyzeMoodTruthfulness({
             studentName: user.name,
@@ -168,21 +172,19 @@ export default function GamePage() {
             answers: answerPayload
         });
 
-        // Prepare the data to update in Firebase
+        // Prepare the final data to update in Firebase
         const analysisUpdate = {
             truthfulness: analysis.truthfulness,
             reasoning: analysis.reasoning,
             recommendation: analysis.recommendation,
         };
         
-        // Update the existing entry in Firebase with the analysis
-        const moodRef = ref(database, 'blumie');
+        // Update the entry in Firebase with the final analysis
         await update(moodRef, analysisUpdate);
-        
-        // Clear the temporary full analysis from local storage as it's now in DB
-        localStorage.removeItem("finalAnalysis");
 
     } catch(error) {
+        // If analysis fails, revert the status
+        await update(moodRef, { truthfulness: "Error" });
         toast({
             title: "Background Analysis Failed",
             description: "Could not process and save your full response.",
@@ -190,7 +192,7 @@ export default function GamePage() {
         });
         console.error("Background analysis or DB update error:", error);
     } finally {
-        setIsLoading(false);
+        setIsLoading(false); // This only affects the button on the game page, which is already gone
     }
   };
   

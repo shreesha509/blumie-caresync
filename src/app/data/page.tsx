@@ -25,7 +25,7 @@ export interface MoodData {
   mood_name: string;
   mood_color: string;
   timestamp: string;
-  truthfulness?: 'Genuine' | 'Potentially Inconsistent';
+  truthfulness?: 'Genuine' | 'Potentially Inconsistent' | 'Processing...';
   reasoning?: string;
   recommendation?: string;
 }
@@ -48,8 +48,11 @@ export default function DataPage() {
     const unsubscribe = onValue(moodRef, (snapshot) => {
       const data = snapshot.val();
       if (data) {
+        // Create a history list. In a real app, you'd fetch a list of items.
+        // For this app, we just show the single latest entry in the table.
+        const historyData = [data];
         setLatestMood(data);
-        setMoodHistory([data]); // In a real app, you'd fetch a list of items
+        setMoodHistory(historyData);
       } else {
         setLatestMood(null);
         setMoodHistory([]);
