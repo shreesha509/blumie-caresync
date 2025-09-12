@@ -2,8 +2,8 @@
 "use client"
 
 import { ColumnDef } from "@tanstack/react-table"
-import { MoodData } from "@/app/data/page" // Adjusted to MoodData
-import { ArrowUpDown, CheckCircle2, AlertTriangle, Loader2 } from "lucide-react"
+import { MoodData } from "@/app/data/page"
+import { ArrowUpDown, CheckCircle2, AlertTriangle, Loader2, XCircle } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { format } from "date-fns"
 import { Badge } from "@/components/ui/badge"
@@ -44,6 +44,15 @@ export const columns: ColumnDef<MoodData>[] = [
            <Badge variant="outline" className="flex items-center gap-1.5">
             <Loader2 className="h-3.5 w-3.5 animate-spin" />
             Processing...
+          </Badge>
+        )
+      }
+
+      if (truthfulness === "Error") {
+        return (
+           <Badge variant="destructive" className="flex items-center gap-1.5">
+            <XCircle className="h-3.5 w-3.5" />
+            Error
           </Badge>
         )
       }

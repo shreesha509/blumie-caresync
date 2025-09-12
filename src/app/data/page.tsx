@@ -19,13 +19,12 @@ import { ref, onValue, off } from "firebase/database";
 import { MoodDataTable } from "@/components/MoodDataTable";
 import { columns } from "@/components/columns";
 
-// This interface matches the structure in Firebase, including analysis fields
 export interface MoodData {
   student_id: string;
   mood_name: string;
   mood_color: string;
   timestamp: string;
-  truthfulness?: 'Genuine' | 'Potentially Inconsistent' | 'Processing...';
+  truthfulness?: 'Genuine' | 'Potentially Inconsistent' | 'Processing...' | 'Error';
   reasoning?: string;
   recommendation?: string;
 }
@@ -48,9 +47,7 @@ export default function DataPage() {
     const unsubscribe = onValue(moodRef, (snapshot) => {
       const data = snapshot.val();
       if (data) {
-        // Create a history list. In a real app, you'd fetch a list of items.
-        // For this app, we just show the single latest entry in the table.
-        const historyData = [data];
+        const historyData: MoodData[] = [data];
         setLatestMood(data);
         setMoodHistory(historyData);
       } else {
@@ -59,12 +56,11 @@ export default function DataPage() {
       }
     });
 
-    // Cleanup subscription on unmount
     return () => off(moodRef, 'value', unsubscribe);
   }, []);
 
   if (!user || user.role !== 'warden') {
-    return null; // Or a loading spinner
+    return null;
   }
 
   return (

@@ -146,14 +146,12 @@ export default function GamePage() {
         answer10: answers[questions[9].id] || "",
     };
 
-    // Store for chat page
     const intermediateMoodData = {
         ...latestMood,
         gameResponse: answerPayload,
     };
     localStorage.setItem("latestMood", JSON.stringify(intermediateMoodData));
 
-    // --- QUICK FIX: Set processing status in Firebase immediately ---
     const moodRef = ref(database, 'blumie');
     await update(moodRef, { truthfulness: "Processing..." });
     
@@ -164,35 +162,24 @@ export default function GamePage() {
 
     router.push('/chat');
 
-    // --- Perform analysis in the background ---
     try {
         const analysis: MoodTruthfulnessOutput = await analyzeMoodTruthfulness({
             studentName: user.name,
-            mood: latestMood.text,
+            mood: latestMood.mood_name,
             answers: answerPayload
         });
 
-        // Prepare the final data to update in Firebase
         const analysisUpdate = {
             truthfulness: analysis.truthfulness,
             reasoning: analysis.reasoning,
             recommendation: analysis.recommendation,
         };
         
-        // Update the entry in Firebase with the final analysis
         await update(moodRef, analysisUpdate);
 
     } catch(error) {
-        // If analysis fails, revert the status
         await update(moodRef, { truthfulness: "Error" });
-        toast({
-            title: "Background Analysis Failed",
-            description: "Could not process and save your full response.",
-            variant: "destructive",
-        });
         console.error("Background analysis or DB update error:", error);
-    } finally {
-        setIsLoading(false); // This only affects the button on the game page, which is already gone
     }
   };
   

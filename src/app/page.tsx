@@ -19,6 +19,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Loader2, Mic, MicOff } from "lucide-react";
 import { database } from "@/lib/firebase";
 import { ref, set } from "firebase/database";
+import { analyzeMood } from "@/ai/flows/mood-analysis-flow";
 
 const moodColors = [
   { name: "Serene", color: "#64B5F6" },
@@ -28,7 +29,6 @@ const moodColors = [
   { name: "Creative", color: "#9575CD" },
 ];
 
-// Add this type definition for the SpeechRecognition API
 declare global {
   interface Window {
     SpeechRecognition: any;
@@ -44,18 +44,17 @@ export default function Home() {
   const router = useRouter();
   const { toast } = useToast();
 
+  const [isLoading, setIsLoading] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const speechRecognitionRef = useRef<any>(null);
 
   useEffect(() => {
-    // Redirect if user is logged in and is a warden
     if (user && user.role === "warden") {
       router.replace("/data");
     }
   }, [user, router]);
   
   useEffect(() => {
-    // Speech Recognition setup (client-side only)
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (SpeechRecognition) {
       speechRecognitionRef.current = new SpeechRecognition();
@@ -63,25 +62,15 @@ export default function Home() {
       speechRecognitionRef.current.interimResults = true;
       speechRecognitionRef.current.lang = 'en-US';
 
-      speechRecognitionRef.current.onstart = () => {
-        setIsRecording(true);
-      };
-
-      speechRecognitionRef.current.onend = () => {
-        setIsRecording(false);
-      };
-
+      speechRecognitionRef.current.onstart = () => setIsRecording(true);
+      speechRecognitionRef.current.onend = () => setIsRecording(false);
       speechRecognitionRef.current.onresult = (event: any) => {
-        let interimTranscript = '';
         let finalTranscript = '';
         for (let i = event.resultIndex; i < event.results.length; ++i) {
           if (event.results[i].isFinal) {
             finalTranscript += event.results[i][0].transcript;
-          } else {
-            interimTranscript += event.results[i][0].transcript;
           }
         }
-        // Update the text area with the final part of the transcript
         setMoodText(prevText => prevText + finalTranscript);
       };
       
@@ -94,7 +83,6 @@ export default function Home() {
         });
         setIsRecording(false);
       };
-
     }
   }, [toast]);
   
@@ -110,7 +98,6 @@ export default function Home() {
     if (isRecording) {
       speechRecognitionRef.current.stop();
     } else {
-      // Clear previous text before starting a new recording
       setMoodText('');
       speechRecognitionRef.current.start();
     }
@@ -121,54 +108,54 @@ export default function Home() {
       speechRecognitionRef.current.stop();
     }
     if (!moodText.trim()) {
-       toast({
-        title: "Please describe your mood",
-        description: "Your mood description is needed for the analysis.",
-        variant: "destructive",
-      });
-      return;
+       toast({ title: "Please describe your mood", variant: "destructive" });
+       return;
     }
      if (!user || !user.name) {
-      toast({
-        title: "User not found",
-        description: "Could not identify the current user. Please log in again.",
-        variant: "destructive",
-      });
+      toast({ title: "User not found", variant: "destructive" });
       return;
     }
 
+    setIsLoading(true);
+
     const moodData = {
-      student_id: user.name, // Using name as a simple student ID
+      student_id: user.name,
       mood_name: moodText,
       mood_color: selectedColor,
       timestamp: new Date().toISOString(),
     };
     
-    // Store data needed for subsequent pages in localStorage.
-    localStorage.setItem("latestMood", JSON.stringify({
-        text: moodText,
-        color: selectedColor,
-        studentName: user.name,
-        timestamp: moodData.timestamp,
-    }));
+    // Immediately navigate for a responsive UI
+    router.push('/game');
     
     try {
+        // Save initial data to Firebase
         await set(ref(database, 'blumie'), moodData);
+
+        // Run analysis in the background
+        const analysisResult = await analyzeMood({ mood: moodText });
+
+        // Store all data for the next pages
+        localStorage.setItem("latestMood", JSON.stringify({
+            ...moodData,
+            analysis: analysisResult.analysis,
+        }));
 
         toast({
           title: "Mood Submitted!",
-          description: "Now, let's play a quick game to understand you better.",
+          description: "Now, let's play a quick game.",
         });
-
-        // Navigate immediately for a smoother experience.
-        router.push('/game');
 
     } catch (error) {
-         toast({
-            title: "Database Error",
-            description: "Could not save your mood. Please try again.",
+        console.error("Submission or Analysis Error:", error);
+        toast({
+            title: "Error",
+            description: "Could not save your mood or run analysis.",
             variant: "destructive",
         });
+    } finally {
+        // This will run after navigation, so it's fine.
+        setIsLoading(false);
     }
   };
 
@@ -193,8 +180,6 @@ export default function Home() {
     })
     .join(", ")})`;
 
-  // Don't render anything if the user is not a student or not logged in yet.
-  // This prevents brief flashes of content before redirection.
   if (!user || user.role !== 'student') {
     return <div className="flex min-h-[calc(100dvh-3.5rem)] w-full flex-col items-center justify-center"><Loader2 className="animate-spin" /></div>;
   }
@@ -253,8 +238,9 @@ export default function Home() {
           </div>
         </CardContent>
         <CardFooter>
-          <Button onClick={handleSubmit} className="w-full" variant="default">
-            Submit & Continue
+          <Button onClick={handleSubmit} className="w-full" variant="default" disabled={isLoading}>
+            {isLoading && <Loader2 className="animate-spin mr-2" />}
+            {isLoading ? "Analyzing..." : "Submit & Continue"}
           </Button>
         </CardFooter>
       </Card>
