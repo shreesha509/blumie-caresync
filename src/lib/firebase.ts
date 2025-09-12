@@ -8,9 +8,9 @@ const firebaseConfig = {
   storageBucket: "moodlight-lah48.firebasestorage.app",
   apiKey: "AIzaSyAN5ZXE5kFJAbljbqR5rq-_xGbfQ22SskM",
   authDomain: "moodlight-lah48.firebaseapp.com",
+  databaseURL: "https://moodlight-lah48-default-rtdb.firebaseio.com",
   measurementId: "",
   messagingSenderId: "39982483307",
-  databaseURL: "https://moodlight-lah48.firebaseio.com"
 };
 
 
