@@ -39,7 +39,6 @@ declare global {
 export default function Home() {
   const [moodText, setMoodText] = useState("");
   const [selectedColor, setSelectedColor] = useState(moodColors[0].color);
-  const [isLoading, setIsLoading] = useState(false);
   const colorWheelRef = useRef<HTMLDivElement>(null);
   const { user } = useAuth();
   const router = useRouter();
@@ -137,8 +136,6 @@ export default function Home() {
       });
       return;
     }
-    
-    setIsLoading(true);
 
     const moodData = {
       student_id: user.name, // Using name as a simple student ID
@@ -147,15 +144,13 @@ export default function Home() {
       timestamp: new Date().toISOString(),
     };
     
-    const tempStorageForGame = {
+    // Store data needed for subsequent pages in localStorage.
+    localStorage.setItem("latestMood", JSON.stringify({
         text: moodText,
         color: selectedColor,
         studentName: user.name,
         timestamp: moodData.timestamp,
-    };
-    
-    // Store data needed for subsequent pages in localStorage.
-    localStorage.setItem("latestMood", JSON.stringify(tempStorageForGame));
+    }));
     
     try {
         await set(ref(database, 'blumie'), moodData);
@@ -174,7 +169,6 @@ export default function Home() {
             description: "Could not save your mood. Please try again.",
             variant: "destructive",
         });
-        setIsLoading(false);
     }
   };
 
@@ -227,14 +221,12 @@ export default function Home() {
               onChange={(e) => setMoodText(e.target.value)}
               rows={3}
               className="bg-background/80 pr-12"
-              disabled={isLoading}
             />
              <Button
                 variant="ghost"
                 size="icon"
                 className={cn("absolute right-2 top-1/2 -translate-y-1/2", isRecording && "text-red-500 hover:text-red-600")}
                 onClick={toggleRecording}
-                disabled={isLoading}
                 aria-label="Toggle recording"
             >
                 {isRecording ? <MicOff /> : <Mic />}
@@ -244,7 +236,7 @@ export default function Home() {
             <label className="text-sm font-medium text-card-foreground">Choose a color</label>
             <div 
               ref={colorWheelRef}
-              className={cn("relative h-40 w-40 rounded-full cursor-pointer border-4", isLoading && "opacity-50 pointer-events-none")}
+              className="relative h-40 w-40 rounded-full cursor-pointer border-4"
               style={{ 
                 backgroundImage: conicGradient,
                 borderColor: selectedColor
@@ -261,9 +253,8 @@ export default function Home() {
           </div>
         </CardContent>
         <CardFooter>
-          <Button onClick={handleSubmit} className="w-full" variant="default" disabled={isLoading}>
-            {isLoading && <Loader2 className="animate-spin" />}
-            {isLoading ? "Submitting..." : "Submit & Continue"}
+          <Button onClick={handleSubmit} className="w-full" variant="default">
+            Submit & Continue
           </Button>
         </CardFooter>
       </Card>
