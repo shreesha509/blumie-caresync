@@ -19,12 +19,15 @@ import { ref, onValue, off } from "firebase/database";
 import { MoodDataTable } from "@/components/MoodDataTable";
 import { columns } from "@/components/columns";
 
-// This interface matches the structure in Firebase
+// This interface matches the structure in Firebase, including analysis fields
 export interface MoodData {
   student_id: string;
   mood_name: string;
   mood_color: string;
   timestamp: string;
+  truthfulness?: 'Genuine' | 'Potentially Inconsistent';
+  reasoning?: string;
+  recommendation?: string;
 }
 
 export default function DataPage() {
@@ -40,15 +43,11 @@ export default function DataPage() {
   }, [user, router]);
   
   useEffect(() => {
-    // For simplicity in this example, we'll listen to the single `blumie` object
-    // In a real app, you would listen to a list of mood entries
     const moodRef = ref(database, 'blumie');
     
     const unsubscribe = onValue(moodRef, (snapshot) => {
       const data = snapshot.val();
       if (data) {
-        // Since we only have one object, we'll set it as the latest
-        // and put it in an array for the history table.
         setLatestMood(data);
         setMoodHistory([data]); // In a real app, you'd fetch a list of items
       } else {
@@ -109,7 +108,7 @@ export default function DataPage() {
        <Card className="mt-6">
         <CardHeader>
           <CardTitle>Student Mood History</CardTitle>
-          <CardDescription>A log of all student mood submissions. Currently showing the latest entry.</CardDescription>
+          <CardDescription>A log of all student mood submissions, including AI analysis.</CardDescription>
         </CardHeader>
         <CardContent>
            <MoodDataTable columns={columns} data={moodHistory} />

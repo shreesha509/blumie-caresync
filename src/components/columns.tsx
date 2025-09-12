@@ -3,9 +3,10 @@
 
 import { ColumnDef } from "@tanstack/react-table"
 import { MoodData } from "@/app/data/page" // Adjusted to MoodData
-import { ArrowUpDown } from "lucide-react"
+import { ArrowUpDown, CheckCircle2, AlertTriangle } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { format } from "date-fns"
+import { Badge } from "@/components/ui/badge"
 
 export const columns: ColumnDef<MoodData>[] = [
   {
@@ -32,17 +33,37 @@ export const columns: ColumnDef<MoodData>[] = [
     cell: ({ row }) => <div className="italic text-muted-foreground">"{row.getValue("mood_name")}"</div>,
   },
   {
-    accessorKey: "mood_color",
-    header: "Color",
-    cell: ({ row }) => (
-      <div className="flex items-center gap-2">
-        <div
-          className="h-4 w-4 rounded-full border"
-          style={{ backgroundColor: row.getValue("mood_color") }}
-        />
-        {row.getValue("mood_color")}
-      </div>
-    ),
+    accessorKey: "truthfulness",
+    header: "Truthfulness",
+    cell: ({ row }) => {
+      const truthfulness = row.original.truthfulness;
+      if (!truthfulness) return <span className="text-muted-foreground">N/A</span>;
+      
+      const isGenuine = truthfulness === "Genuine";
+      
+      return (
+        <Badge variant={isGenuine ? "secondary" : "destructive"} className="flex items-center gap-1.5">
+          {isGenuine ? <CheckCircle2 className="h-3.5 w-3.5" /> : <AlertTriangle className="h-3.5 w-3.5" />}
+          {truthfulness}
+        </Badge>
+      );
+    },
+  },
+  {
+    accessorKey: "reasoning",
+    header: "AI Reasoning",
+    cell: ({ row }) => {
+       const reasoning = row.original.reasoning;
+       return <div className="text-sm max-w-xs truncate">{reasoning || "N/A"}</div>
+    }
+  },
+  {
+    accessorKey: "recommendation",
+    header: "AI Recommendation",
+     cell: ({ row }) => {
+       const recommendation = row.original.recommendation;
+       return <div className="text-sm font-semibold max-w-xs truncate">{recommendation || "N/A"}</div>
+    }
   },
   {
     accessorKey: "timestamp",

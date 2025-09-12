@@ -21,6 +21,8 @@ import { analyzeMoodTruthfulness } from "@/ai/flows/mood-truthfulness-flow";
 import type { MoodTruthfulnessOutput } from "@/ai/schemas/mood-truthfulness";
 import { Carousel, CarouselContent, CarouselItem, type CarouselApi } from "@/components/ui/carousel"
 import { Progress } from "@/components/ui/progress";
+import { database } from "@/lib/firebase";
+import { ref, update } from "firebase/database";
 
 
 const allQuestions = [
@@ -144,6 +146,7 @@ export default function GamePage() {
         answer10: answers[questions[9].id] || "",
     };
 
+    // Store for chat page
     const intermediateMoodData = {
         ...latestMood,
         gameResponse: answerPayload,
@@ -157,7 +160,7 @@ export default function GamePage() {
 
     router.push('/chat');
 
-    // Perform analysis in the background
+    // Perform analysis in the background and update Firebase
     try {
         const analysis: MoodTruthfulnessOutput = await analyzeMoodTruthfulness({
             studentName: user.name,
@@ -165,24 +168,27 @@ export default function GamePage() {
             answers: answerPayload
         });
 
-        const finalMoodData = {
-            ...intermediateMoodData,
-            analysis: analysis.reasoning,
+        // Prepare the data to update in Firebase
+        const analysisUpdate = {
             truthfulness: analysis.truthfulness,
             reasoning: analysis.reasoning,
             recommendation: analysis.recommendation,
         };
-        // This is a temporary storage for warden dashboard until full DB integration
-        localStorage.setItem("finalAnalysis", JSON.stringify(finalMoodData));
-
+        
+        // Update the existing entry in Firebase with the analysis
+        const moodRef = ref(database, 'blumie');
+        await update(moodRef, analysisUpdate);
+        
+        // Clear the temporary full analysis from local storage as it's now in DB
+        localStorage.removeItem("finalAnalysis");
 
     } catch(error) {
         toast({
             title: "Background Analysis Failed",
-            description: "Could not process your response in the background.",
+            description: "Could not process and save your full response.",
             variant: "destructive",
         });
-        console.error("Background analysis error:", error);
+        console.error("Background analysis or DB update error:", error);
     } finally {
         setIsLoading(false);
     }
