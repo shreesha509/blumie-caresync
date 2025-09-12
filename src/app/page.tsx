@@ -44,7 +44,6 @@ export default function Home() {
   const router = useRouter();
   const { toast } = useToast();
 
-  const [isLoading, setIsLoading] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const speechRecognitionRef = useRef<any>(null);
 
@@ -116,8 +115,6 @@ export default function Home() {
       return;
     }
 
-    setIsLoading(true);
-
     const moodData = {
       student_id: user.name,
       mood_name: moodText,
@@ -125,37 +122,28 @@ export default function Home() {
       timestamp: new Date().toISOString(),
     };
     
-    // Immediately navigate for a responsive UI
-    router.push('/game');
-    
     try {
         // Save initial data to Firebase
         await set(ref(database, 'blumie'), moodData);
 
-        // Run analysis in the background
-        const analysisResult = await analyzeMood({ mood: moodText });
-
-        // Store all data for the next pages
-        localStorage.setItem("latestMood", JSON.stringify({
-            ...moodData,
-            analysis: analysisResult.analysis,
-        }));
+        // Store data for the next pages
+        localStorage.setItem("latestMood", JSON.stringify(moodData));
 
         toast({
           title: "Mood Submitted!",
           description: "Now, let's play a quick game.",
         });
 
+        // Immediately navigate for a responsive UI
+        router.push('/game');
+
     } catch (error) {
-        console.error("Submission or Analysis Error:", error);
+        console.error("Submission Error:", error);
         toast({
             title: "Error",
-            description: "Could not save your mood or run analysis.",
+            description: "Could not save your mood.",
             variant: "destructive",
         });
-    } finally {
-        // This will run after navigation, so it's fine.
-        setIsLoading(false);
     }
   };
 
@@ -238,9 +226,8 @@ export default function Home() {
           </div>
         </CardContent>
         <CardFooter>
-          <Button onClick={handleSubmit} className="w-full" variant="default" disabled={isLoading}>
-            {isLoading && <Loader2 className="animate-spin mr-2" />}
-            {isLoading ? "Analyzing..." : "Submit & Continue"}
+          <Button onClick={handleSubmit} className="w-full" variant="default">
+            Submit & Continue
           </Button>
         </CardFooter>
       </Card>
