@@ -226,7 +226,7 @@ export default function Home() {
   // Don't render anything if the user is not a student or not logged in yet.
   // This prevents brief flashes of content before redirection.
   if (!user || user.role !== 'student') {
-    return null;
+    return <div className="flex min-h-[calc(100dvh-3.5rem)] w-full flex-col items-center justify-center"><Loader2 className="animate-spin" /></div>;
   }
 
   return (
