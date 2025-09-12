@@ -157,7 +157,6 @@ export default function Home() {
     };
     
     // Store data needed for subsequent pages in localStorage.
-    // This will be cleared after the full flow is complete.
     localStorage.setItem("latestMood", JSON.stringify(tempStorageForGame));
     
     try {
