@@ -3,23 +3,24 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
   CardDescription,
-  CardFooter,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { HeartPulse, Footprints, Activity, User as UserIcon } from "lucide-react";
+import { User as UserIcon } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { formatDistanceToNow } from 'date-fns';
 import { database } from "@/lib/firebase";
-import { ref, onValue } from "firebase/database";
+import { ref, onValue, off } from "firebase/database";
+import { MoodDataTable } from "@/components/MoodDataTable";
+import { columns } from "@/components/columns";
 
-export interface BlumieData {
+// This interface matches the structure in Firebase
+export interface MoodData {
   student_id: string;
   mood_name: string;
   mood_color: string;
@@ -29,7 +30,8 @@ export interface BlumieData {
 export default function DataPage() {
   const { user } = useAuth();
   const router = useRouter();
-  const [latestMood, setLatestMood] = useState<BlumieData | null>(null);
+  const [latestMood, setLatestMood] = useState<MoodData | null>(null);
+  const [moodHistory, setMoodHistory] = useState<MoodData[]>([]);
 
   useEffect(() => {
     if (user && user.role !== "warden") {
@@ -38,21 +40,29 @@ export default function DataPage() {
   }, [user, router]);
   
   useEffect(() => {
+    // For simplicity in this example, we'll listen to the single `blumie` object
+    // In a real app, you would listen to a list of mood entries
     const moodRef = ref(database, 'blumie');
     
     const unsubscribe = onValue(moodRef, (snapshot) => {
       const data = snapshot.val();
       if (data) {
+        // Since we only have one object, we'll set it as the latest
+        // and put it in an array for the history table.
         setLatestMood(data);
+        setMoodHistory([data]); // In a real app, you'd fetch a list of items
+      } else {
+        setLatestMood(null);
+        setMoodHistory([]);
       }
     });
 
     // Cleanup subscription on unmount
-    return () => unsubscribe();
+    return () => off(moodRef, 'value', unsubscribe);
   }, []);
 
   if (!user || user.role !== 'warden') {
-    return null;
+    return null; // Or a loading spinner
   }
 
   return (
@@ -60,44 +70,12 @@ export default function DataPage() {
       <div className="flex flex-col items-center text-center">
         <h1 className="text-4xl font-bold font-headline tracking-tight">Wellness Dashboard</h1>
         <p className="mt-2 text-lg text-muted-foreground">
-          An overview of student mood and biometric data.
+          A real-time overview of the latest student mood submission.
         </p>
       </div>
 
-      <div className="mt-10 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-         <Card className="lg:col-span-1">
-          <CardHeader>
-            <CardTitle>Today's Vitals</CardTitle>
-            <CardDescription>A summary of student biometrics.</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <HeartPulse className="h-6 w-6 text-red-500" />
-                <span className="font-medium">Avg. Heart Rate</span>
-              </div>
-              <span className="font-mono text-lg">78 bpm</span>
-            </div>
-            <Separator />
-             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <Footprints className="h-6 w-6 text-blue-500" />
-                <span className="font-medium">Avg. Steps Taken</span>
-              </div>
-              <span className="font-mono text-lg">6,200</span>
-            </div>
-             <Separator />
-             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <Activity className="h-6 w-6 text-green-500" />
-                <span className="font-medium">Avg. Active Mins</span>
-              </div>
-              <span className="font-mono text-lg">45</span>
-            </div>
-          </CardContent>
-        </Card>
-        
-        <Card className="flex flex-col lg:col-span-2">
+      <div className="mt-10">
+        <Card>
            <CardHeader>
             <CardTitle>Latest Student Mood</CardTitle>
             <CardDescription>
@@ -106,7 +84,7 @@ export default function DataPage() {
                 : "No mood submitted yet."}
             </CardDescription>
           </CardHeader>
-          <CardContent className="flex-grow space-y-4">
+          <CardContent className="space-y-4">
             {latestMood ? (
               <>
                  <div className="flex items-center gap-4">
@@ -116,30 +94,25 @@ export default function DataPage() {
                 <Separator />
                 <div className="flex items-start gap-4">
                    <div className="w-4 h-4 rounded-full mt-1.5 shrink-0" style={{ backgroundColor: latestMood.mood_color }} />
-                  <p className="text-sm text-muted-foreground italic">"{latestMood.mood_name}"</p>
+                  <p className="text-lg text-foreground">"{latestMood.mood_name}"</p>
                 </div>
               </>
             ) : (
-              <div className="flex items-center justify-center h-full">
+              <div className="flex items-center justify-center h-full py-10">
                 <p className="text-muted-foreground">Waiting for student submission...</p>
               </div>
             )}
           </CardContent>
-           <CardFooter>
-            <Button disabled className="w-full">
-              Real-time Analysis by Gemini
-            </Button>
-          </CardFooter>
         </Card>
       </div>
 
        <Card className="mt-6">
         <CardHeader>
           <CardTitle>Student Mood History</CardTitle>
-          <CardDescription>A complete log of all student mood submissions.</CardDescription>
+          <CardDescription>A log of all student mood submissions. Currently showing the latest entry.</CardDescription>
         </CardHeader>
         <CardContent>
-            <p className="text-muted-foreground text-center py-8">Mood history table is under construction.</p>
+           <MoodDataTable columns={columns} data={moodHistory} />
         </CardContent>
       </Card>
     </div>
