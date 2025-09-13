@@ -14,7 +14,7 @@ export async function sendSmsWarning(studentName: string): Promise<void> {
   const authToken = process.env.TWILIO_AUTH_TOKEN;
   const twilioPhoneNumber = process.env.TWILIO_PHONE_NUMBER;
   const wardenPhoneNumber = process.env.WARDEN_PHONE_NUMBER;
-
+  console.log("auth token", authToken);
   // The AI has flagged this submission as high-risk.
   const message = `IMMEDIATE ATTENTION: MoodLight has flagged a submission from student '${studentName}' as high-risk. Their responses suggest they may be in a dangerous emotional state. A conversation with a caretaker is strongly recommended. Please review the dashboard immediately.`;
 
