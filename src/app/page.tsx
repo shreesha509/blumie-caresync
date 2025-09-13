@@ -21,11 +21,11 @@ import { database } from "@/lib/firebase";
 import { ref, set } from "firebase/database";
 
 const moodColors = [
-  { name: "Serene", color: "#64B5F6" },
-  { name: "Calm", color: "#81C784" },
-  { name: "Happy", color: "#FFD54F" },
-  { name: "Energetic", color: "#FF8A65" },
-  { name: "Creative", color: "#9575CD" },
+  { name: "Serene", color: "#64B5F6", rgb: { r: 100, g: 181, b: 246 } },
+  { name: "Calm", color: "#81C784", rgb: { r: 129, g: 199, b: 132 } },
+  { name: "Happy", color: "#FFD54F", rgb: { r: 255, g: 213, b: 79 } },
+  { name: "Energetic", color: "#FF8A65", rgb: { r: 255, g: 138, b: 101 } },
+  { name: "Creative", color: "#9575CD", rgb: { r: 149, g: 117, b: 205 } },
 ];
 
 declare global {
@@ -37,7 +37,7 @@ declare global {
 
 export default function Home() {
   const [moodText, setMoodText] = useState("");
-  const [selectedColor, setSelectedColor] = useState(moodColors[0].color);
+  const [selectedColor, setSelectedColor] = useState(moodColors[0]);
   const colorWheelRef = useRef<HTMLDivElement>(null);
   const { user } = useAuth();
   const router = useRouter();
@@ -117,7 +117,8 @@ export default function Home() {
     const moodData = {
       student_id: user.name,
       mood_name: moodText,
-      mood_color: selectedColor,
+      mood_color: selectedColor.color,
+      mood_color_rgb: selectedColor.rgb,
       timestamp: new Date().toISOString(),
     };
     
@@ -126,9 +127,6 @@ export default function Home() {
     set(ref(database, 'blumie'), moodData)
       .then(() => {
         console.log("Mood data successfully dispatched to Firebase.");
-        // If you wanted to show a success toast *only after* Firebase confirms,
-        // you'd move the "Mood Submitted!" toast here and also await this 'set' operation.
-        // For immediate UI responsiveness, we'll keep the success toast below this block.
       })
       .catch(error => {
         // Handle errors if the Firebase write operation fails
@@ -138,9 +136,6 @@ export default function Home() {
           description: "Could not submit mood to Firebase. Please try again.",
           variant: "destructive",
         });
-        // Optionally, if the Firebase write is critical, you might want to stop
-        // navigation here to avoid leading the user to a game based on unsaved data.
-        // return; // Uncomment this if you want to prevent navigation on Firebase write failure.
       });
 
     // Store data for the next pages (this happens immediately regardless of Firebase write success)
@@ -167,7 +162,7 @@ export default function Home() {
     const segmentAngle = 360 / moodColors.length;
     const colorIndex = Math.floor(angle / segmentAngle);
     
-    setSelectedColor(moodColors[colorIndex].color);
+    setSelectedColor(moodColors[colorIndex]);
   };
   
   const conicGradient = `conic-gradient(${moodColors
@@ -221,14 +216,14 @@ export default function Home() {
               className="relative h-40 w-40 rounded-full cursor-pointer border-4"
               style={{ 
                 backgroundImage: conicGradient,
-                borderColor: selectedColor
+                borderColor: selectedColor.color
               }}
               onClick={handleColorWheelClick}
             >
                <div 
                  className="absolute inset-0 rounded-full transition-all duration-200"
                  style={{
-                   boxShadow: `0 0 15px 5px ${selectedColor}, inset 0 0 15px 5px ${selectedColor}`
+                   boxShadow: `0 0 15px 5px ${selectedColor.color}, inset 0 0 15px 5px ${selectedColor.color}`
                  }}
                 />
             </div>
