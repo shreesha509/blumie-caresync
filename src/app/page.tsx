@@ -20,12 +20,18 @@ import { Loader2, Mic, MicOff } from "lucide-react";
 import { database } from "@/lib/firebase";
 import { ref, set } from "firebase/database";
 
+// --- UPDATED moodColors ARRAY FOR RGB LED FUNDAMENTAL COLORS ---
+// These colors are chosen to demonstrate distinct primary, secondary colors,
+// and black/white, which an RGB LED can easily produce.
 const moodColors = [
-  { name: "Serene", color: "#64B5F6", rgb: { r: 100, g: 181, b: 246 } },
-  { name: "Calm", color: "#81C784", rgb: { r: 129, g: 199, b: 132 } },
-  { name: "Happy", color: "#FFD54F", rgb: { r: 255, g: 213, b: 79 } },
-  { name: "Energetic", color: "#FF8A65", rgb: { r: 255, g: 138, b: 101 } },
-  { name: "Creative", color: "#9575CD", rgb: { r: 149, g: 117, b: 205 } },
+  { name: "Red", color: "#FF0000", rgb: { r: 255, g: 0, b: 0 } },
+  { name: "Green", color: "#00FF00", rgb: { r: 0, g: 255, b: 0 } },
+  { name: "Blue", color: "#0000FF", rgb: { r: 0, g: 0, b: 255 } },
+  { name: "Yellow", color: "#FFFF00", rgb: { r: 255, g: 255, b: 0 } },
+  { name: "Cyan", color: "#00FFFF", rgb: { r: 0, g: 255, b: 255 } },
+  { name: "Magenta", color: "#FF00FF", rgb: { r: 255, g: 0, b: 255 } },
+  { name: "White", color: "#FFFFFF", rgb: { r: 255, g: 255, b: 255 } },
+  { name: "Off", color: "#000000", rgb: { r: 0, g: 0, b: 0 } }, // To explicitly turn off the LED
 ];
 
 declare global {
@@ -37,7 +43,8 @@ declare global {
 
 export default function Home() {
   const [moodText, setMoodText] = useState("");
-  const [selectedColor, setSelectedColor] = useState(moodColors[0]);
+  // Initialize selectedColor with the first mood in the new array structure
+  const [selectedColor, setSelectedColor] = useState(moodColors[0]); 
   const colorWheelRef = useRef<HTMLDivElement>(null);
   const { user } = useAuth();
   const router = useRouter();
@@ -117,8 +124,8 @@ export default function Home() {
     const moodData = {
       student_id: user.name,
       mood_name: moodText,
-      mood_color: selectedColor.color,
-      mood_color_rgb: selectedColor.rgb,
+      mood_color: selectedColor.color, // Hex code like #FF0000
+      mood_color_rgb: selectedColor.rgb, // RGB object { r: 255, g: 0, b: 0 }
       timestamp: new Date().toISOString(),
     };
     
@@ -157,6 +164,7 @@ export default function Home() {
     const rect = colorWheelRef.current.getBoundingClientRect();
     const x = e.clientX - rect.left - rect.width / 2;
     const y = e.clientY - rect.top - rect.height / 2;
+    // Adjust angle calculation to fit the number of colors precisely
     const angle = (Math.atan2(y, x) * 180 / Math.PI + 360 + 90) % 360;
     
     const segmentAngle = 360 / moodColors.length;
