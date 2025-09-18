@@ -43,8 +43,8 @@ Analyze all inputs for patterns, congruencies, and contradictions.
 - If there are contradictions (e.g., reports feeling "Happy" but answers suggest high stress), set truthfulness to "Potentially Inconsistent".
 
 CRITICAL ASSESSMENT:
-- Review the answers for any indication of severe distress, hopelessness, isolation, self-harm ideation, or a dangerous situation (e.g., answers like "'I'm a failure.'", "Isolated", "Nothing in particular" to looking forward to something, "Non-existent" motivation).
-- If you detect a combination of responses that indicate a high-risk situation that requires immediate intervention from a caretaker, set the 'alertCaretaker' flag to true. Otherwise, set it to false.
+- Review all inputs, including the initial mood description and the game answers, for any indication of severe distress, hopelessness, isolation, self-harm ideation, or a dangerous situation (e.g., answers like "'I'm a failure.'", "Isolated", "Nothing in particular" to looking forward to something, "Non-existent" motivation, or a mood description like "I want to disappear").
+- If you detect a combination of responses OR a particularly severe initial mood description that indicates a high-risk situation requiring immediate intervention from a caretaker, set the 'alertCaretaker' flag to true. Otherwise, set it to false.
 
 Provide a concise, one or two-sentence reasoning for your conclusion. Frame it as a professional observation.
 
@@ -63,9 +63,7 @@ const moodTruthfulnessFlow = ai.defineFlow(
     
     // If the AI flags the situation as requiring an alert, send the SMS.
     if (output?.alertCaretaker) {
-      // This is an async operation, but we don't need to wait for it to complete
-      // before returning the analysis to the app. It can run in the background.
-      sendSmsWarning(input.studentName);
+      await sendSmsWarning(input.studentName);
     }
     
     return output!;
