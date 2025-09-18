@@ -121,7 +121,7 @@ export default function Home() {
       return;
     }
 
-    const moodData = {
+    const firebaseMoodData = {
       student_id: user.name,
       mood_name: moodText,
       mood_color: selectedColor.color, // Hex code like #FF0000
@@ -129,9 +129,16 @@ export default function Home() {
       timestamp: new Date().toISOString(),
     };
     
+    // Data for local storage, which the chat page will use.
+    // Note the `text` property, which the chat page expects.
+    const localMoodData = {
+        text: moodText,
+        ...firebaseMoodData
+    };
+    
     // Dispatch data to Firebase without waiting for the promise to resolve,
     // but include a .catch to handle potential errors gracefully.
-    set(ref(database, 'blumie'), moodData)
+    set(ref(database, 'blumie'), firebaseMoodData)
       .then(() => {
         console.log("Mood data successfully dispatched to Firebase.");
       })
@@ -146,7 +153,7 @@ export default function Home() {
       });
 
     // Store data for the next pages (this happens immediately regardless of Firebase write success)
-    localStorage.setItem("latestMood", JSON.stringify(moodData));
+    localStorage.setItem("latestMood", JSON.stringify(localMoodData));
 
     // Provide immediate positive feedback to the user
     toast({
