@@ -3,7 +3,7 @@
 
 import { ColumnDef } from "@tanstack/react-table"
 import { MoodData } from "@/app/data/page"
-import { ArrowUpDown, CheckCircle2, AlertTriangle, Loader2, XCircle } from "lucide-react"
+import { ArrowUpDown, CheckCircle2, AlertTriangle, Loader2, XCircle, Send } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { format } from "date-fns"
 import { Badge } from "@/components/ui/badge"
@@ -88,6 +88,22 @@ export const columns: ColumnDef<MoodData>[] = [
        }
        return <div className="text-sm font-semibold max-w-xs truncate">{recommendation || "N/A"}</div>
     }
+  },
+  {
+    accessorKey: "alertCaretaker",
+    header: "SMS Alert",
+    cell: ({ row }) => {
+      const alertSent = row.original.alertCaretaker;
+      if (alertSent) {
+        return (
+          <Badge variant="destructive" className="flex items-center gap-1.5">
+            <Send className="h-3.5 w-3.5" />
+            Sent
+          </Badge>
+        );
+      }
+      return <span className="text-sm text-muted-foreground">Not Sent</span>;
+    },
   },
   {
     accessorKey: "timestamp",
