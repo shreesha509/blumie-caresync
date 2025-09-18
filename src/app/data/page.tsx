@@ -13,9 +13,9 @@ import {
 import { Separator } from "@/components/ui/separator";
 import { User as UserIcon, ShieldAlert } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
-import { formatDistanceToNow } from 'date-fns';
+import { formatDistanceToNow } from "date-fns";
 import { database } from "@/lib/firebase";
-import { ref, onValue, off } from "firebase/database";
+import { ref, onValue } from "firebase/database";
 import { MoodDataTable } from "@/components/MoodDataTable";
 import { columns } from "@/components/columns";
 import { useToast } from "@/hooks/use-toast";
@@ -25,7 +25,7 @@ export interface MoodData {
   mood_name: string;
   mood_color: string;
   timestamp: string;
-  truthfulness?: 'Genuine' | 'Potentially Inconsistent' | 'Processing...' | 'Error';
+  truthfulness?: "Genuine" | "Potentially Inconsistent" | "Processing..." | "Error";
   reasoning?: string;
   recommendation?: string;
   alertCaretaker?: boolean;
@@ -35,44 +35,47 @@ export default function DataPage() {
   const { user } = useAuth();
   const router = useRouter();
   const { toast } = useToast();
+
   const [latestMood, setLatestMood] = useState<MoodData | null>(null);
   const [moodHistory, setMoodHistory] = useState<MoodData[]>([]);
-
   const previousMoodState = useRef<MoodData | null>(null);
 
+  // ✅ Restrict access (only wardens)
   useEffect(() => {
     if (user && user.role !== "warden") {
       router.replace("/");
     }
   }, [user, router]);
-  
+
+  // ✅ Listen for real-time mood updates
   useEffect(() => {
-    const moodRef = ref(database, 'blumie');
-    
+    const moodRef = ref(database, "blumie");
+
     const unsubscribe = onValue(moodRef, (snapshot) => {
       const data = snapshot.val();
+
       if (data) {
         const newMood: MoodData = data;
-        setLatestMood(newMood);
-        setMoodHistory([newMood]);
 
-        // Check if the alertCaretaker flag has just been set to true
+        setLatestMood(newMood);
+        setMoodHistory((prev) => [newMood, ...prev].slice(0, 50)); // keep history (limit to last 50)
+
+        // ✅ Trigger caretaker alert only when it switches to true
         const wasAlerted = previousMoodState.current?.alertCaretaker;
         if (newMood.alertCaretaker && !wasAlerted) {
-           toast({
-                variant: "destructive",
-                title: (
-                  <div className="flex items-center gap-2">
-                    <ShieldAlert /> High-Risk Alert
-                  </div>
-                ),
-                description: `AI analysis for ${newMood.student_id} requires attention. An SMS has been sent to the primary caretaker.`,
-                duration: 10000, 
-            });
+          toast({
+            variant: "destructive",
+            title: (
+              <div className="flex items-center gap-2">
+                <ShieldAlert /> High-Risk Alert
+              </div>
+            ),
+            description: `AI analysis for ${newMood.student_id || "Unknown Student"} requires attention. An SMS has been sent to the primary caretaker.`,
+            duration: 10000,
+          });
         }
-        
-        previousMoodState.current = newMood;
 
+        previousMoodState.current = newMood;
       } else {
         setLatestMood(null);
         setMoodHistory([]);
@@ -80,61 +83,80 @@ export default function DataPage() {
       }
     });
 
-    return () => off(moodRef, 'value', unsubscribe);
+    return () => unsubscribe();
   }, [toast]);
 
-  if (!user || user.role !== 'warden') {
-    return null;
-  }
+  // ✅ Prevent flashing before auth loads
+  if (!user) return null;
+  if (user.role !== "warden") return null;
 
   return (
     <div className="container mx-auto py-10 animate-in fade-in">
+      {/* Header */}
       <div className="flex flex-col items-center text-center">
-        <h1 className="text-4xl font-bold font-headline tracking-tight">Wellness Dashboard</h1>
+        <h1 className="text-4xl font-bold font-headline tracking-tight">
+          Wellness Dashboard
+        </h1>
         <p className="mt-2 text-lg text-muted-foreground">
           A real-time overview of the latest student mood submission.
         </p>
       </div>
 
+      {/* Latest Mood */}
       <div className="mt-10">
         <Card>
-           <CardHeader>
+          <CardHeader>
             <CardTitle>Latest Student Mood</CardTitle>
             <CardDescription>
               {latestMood
-                ? `Last updated: ${formatDistanceToNow(new Date(latestMood.timestamp))} ago`
+                ? `Last updated: ${formatDistanceToNow(
+                    new Date(latestMood.timestamp),
+                    { addSuffix: true }
+                  )}`
                 : "No mood submitted yet."}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             {latestMood ? (
               <>
-                 <div className="flex items-center gap-4">
+                <div className="flex items-center gap-4">
                   <UserIcon className="h-5 w-5 text-accent-foreground shrink-0" />
-                  <p className="font-bold text-lg">{latestMood.student_id || 'Unknown Student'}</p>
+                  <p className="font-bold text-lg">
+                    {latestMood.student_id || "Unknown Student"}
+                  </p>
                 </div>
                 <Separator />
                 <div className="flex items-start gap-4">
-                   <div className="w-4 h-4 rounded-full mt-1.5 shrink-0" style={{ backgroundColor: latestMood.mood_color }} />
-                  <p className="text-lg text-foreground">"{latestMood.mood_name}"</p>
+                  <div
+                    className="w-4 h-4 rounded-full mt-1.5 shrink-0"
+                    style={{ backgroundColor: latestMood.mood_color }}
+                  />
+                  <p className="text-lg text-foreground">
+                    “{latestMood.mood_name}”
+                  </p>
                 </div>
               </>
             ) : (
               <div className="flex items-center justify-center h-full py-10">
-                <p className="text-muted-foreground">Waiting for student submission...</p>
+                <p className="text-muted-foreground">
+                  Waiting for student submission...
+                </p>
               </div>
             )}
           </CardContent>
         </Card>
       </div>
 
-       <Card className="mt-6">
+      {/* Mood History */}
+      <Card className="mt-6">
         <CardHeader>
           <CardTitle>Student Mood History</CardTitle>
-          <CardDescription>A log of all student mood submissions, including AI analysis.</CardDescription>
+          <CardDescription>
+            A log of all student mood submissions, including AI analysis.
+          </CardDescription>
         </CardHeader>
         <CardContent>
-           <MoodDataTable columns={columns} data={moodHistory} />
+          <MoodDataTable columns={columns} data={moodHistory} />
         </CardContent>
       </Card>
     </div>
