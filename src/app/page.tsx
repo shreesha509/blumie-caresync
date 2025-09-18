@@ -20,9 +20,6 @@ import { Loader2, Mic, MicOff } from "lucide-react";
 import { database } from "@/lib/firebase";
 import { ref, set } from "firebase/database";
 
-// --- UPDATED moodColors ARRAY FOR RGB LED FUNDAMENTAL COLORS ---
-// These colors are chosen to demonstrate distinct primary, secondary colors,
-// and black/white, which an RGB LED can easily produce.
 const moodColors = [
   { name: "Red", color: "#FF0000", rgb: { r: 255, g: 0, b: 0 } },
   { name: "Green", color: "#00FF00", rgb: { r: 0, g: 255, b: 0 } },
@@ -31,7 +28,7 @@ const moodColors = [
   { name: "Cyan", color: "#00FFFF", rgb: { r: 0, g: 255, b: 255 } },
   { name: "Magenta", color: "#FF00FF", rgb: { r: 255, g: 0, b: 255 } },
   { name: "White", color: "#FFFFFF", rgb: { r: 255, g: 255, b: 255 } },
-  { name: "Off", color: "#000000", rgb: { r: 0, g: 0, b: 0 } }, // To explicitly turn off the LED
+  { name: "Off", color: "#000000", rgb: { r: 0, g: 0, b: 0 } },
 ];
 
 declare global {
@@ -43,7 +40,6 @@ declare global {
 
 export default function Home() {
   const [moodText, setMoodText] = useState("");
-  // Initialize selectedColor with the first mood in the new array structure
   const [selectedColor, setSelectedColor] = useState(moodColors[0]); 
   const colorWheelRef = useRef<HTMLDivElement>(null);
   const { user } = useAuth();
@@ -121,47 +117,45 @@ export default function Home() {
       return;
     }
 
+    const timestamp = new Date().toISOString();
+
+    // Data for Firebase
     const firebaseMoodData = {
       student_id: user.name,
-      mood_name: moodText,
-      mood_color: selectedColor.color, // Hex code like #FF0000
-      mood_color_rgb: selectedColor.rgb, // RGB object { r: 255, g: 0, b: 0 }
-      timestamp: new Date().toISOString(),
+      mood_name: moodText, // Use `mood_name` for consistency in the database
+      mood_color: selectedColor.color,
+      mood_color_rgb: selectedColor.rgb,
+      timestamp: timestamp,
     };
     
-    // Data for local storage, which the chat page will use.
-    // Note the `text` property, which the chat page expects.
+    // Data for local storage, which subsequent pages will use
     const localMoodData = {
-        text: moodText,
-        ...firebaseMoodData
+        text: moodText, // `text` is what the chat page expects
+        student_id: user.name,
+        mood_color: selectedColor.color,
+        mood_color_rgb: selectedColor.rgb,
+        timestamp: timestamp,
     };
     
-    // Dispatch data to Firebase without waiting for the promise to resolve,
-    // but include a .catch to handle potential errors gracefully.
+    // Dispatch data to Firebase
     set(ref(database, 'blumie'), firebaseMoodData)
-      .then(() => {
-        console.log("Mood data successfully dispatched to Firebase.");
-      })
       .catch(error => {
-        // Handle errors if the Firebase write operation fails
-        console.error("Error writing mood data to Realtime Database:", error);
+        console.error("Error writing to Firebase:", error);
         toast({
           title: "Submission Failed",
-          description: "Could not submit mood to Firebase. Please try again.",
+          description: "Could not save mood to the database.",
           variant: "destructive",
         });
       });
 
-    // Store data for the next pages (this happens immediately regardless of Firebase write success)
+    // Store data locally for the game and chat pages
     localStorage.setItem("latestMood", JSON.stringify(localMoodData));
 
-    // Provide immediate positive feedback to the user
     toast({
       title: "Mood Submitted!",
       description: "Now, let's play a quick game.",
     });
 
-    // Immediately navigate for a responsive UI (this happens even if Firebase write fails silently)
     router.push('/game');
   };
 
@@ -171,7 +165,6 @@ export default function Home() {
     const rect = colorWheelRef.current.getBoundingClientRect();
     const x = e.clientX - rect.left - rect.width / 2;
     const y = e.clientY - rect.top - rect.height / 2;
-    // Adjust angle calculation to fit the number of colors precisely
     const angle = (Math.atan2(y, x) * 180 / Math.PI + 360 + 90) % 360;
     
     const segmentAngle = 360 / moodColors.length;
@@ -253,5 +246,3 @@ export default function Home() {
     </div>
   );
 }
-
-    

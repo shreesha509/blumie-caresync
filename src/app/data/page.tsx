@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import {
   Card,
@@ -11,13 +11,15 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { User as UserIcon } from "lucide-react";
+import { User as UserIcon, ShieldAlert } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { formatDistanceToNow } from 'date-fns';
 import { database } from "@/lib/firebase";
 import { ref, onValue, off } from "firebase/database";
 import { MoodDataTable } from "@/components/MoodDataTable";
 import { columns } from "@/components/columns";
+import { useToast } from "@/hooks/use-toast";
+import { ToastAction } from "@/components/ui/toast";
 
 export interface MoodData {
   student_id: string;
@@ -27,13 +29,18 @@ export interface MoodData {
   truthfulness?: 'Genuine' | 'Potentially Inconsistent' | 'Processing...' | 'Error';
   reasoning?: string;
   recommendation?: string;
+  alertCaretaker?: boolean;
 }
 
 export default function DataPage() {
   const { user } = useAuth();
   const router = useRouter();
+  const { toast } = useToast();
   const [latestMood, setLatestMood] = useState<MoodData | null>(null);
   const [moodHistory, setMoodHistory] = useState<MoodData[]>([]);
+
+  // Ref to track the timestamp of the last notified mood to prevent duplicate alerts
+  const lastNotifiedTimestamp = useRef<string | null>(null);
 
   useEffect(() => {
     if (user && user.role !== "warden") {
@@ -47,9 +54,25 @@ export default function DataPage() {
     const unsubscribe = onValue(moodRef, (snapshot) => {
       const data = snapshot.val();
       if (data) {
-        const historyData: MoodData[] = [data];
-        setLatestMood(data);
-        setMoodHistory(historyData);
+        const newMood: MoodData = data;
+        setLatestMood(newMood);
+        setMoodHistory([newMood]); // The app currently only shows the latest entry as history
+
+        // Check if this is a new, actionable alert that we haven't notified for yet.
+        if (newMood.alertCaretaker && newMood.timestamp !== lastNotifiedTimestamp.current) {
+           lastNotifiedTimestamp.current = newMood.timestamp; // Mark as notified
+           toast({
+                variant: "destructive",
+                title: (
+                  <div className="flex items-center gap-2">
+                    <ShieldAlert /> High-Risk Alert
+                  </div>
+                ),
+                description: `AI analysis for ${newMood.student_id} requires attention. An SMS has been sent to the primary caretaker.`,
+                duration: 10000, // Keep toast on screen longer
+            });
+        }
+
       } else {
         setLatestMood(null);
         setMoodHistory([]);
@@ -57,7 +80,7 @@ export default function DataPage() {
     });
 
     return () => off(moodRef, 'value', unsubscribe);
-  }, []);
+  }, [toast]);
 
   if (!user || user.role !== 'warden') {
     return null;

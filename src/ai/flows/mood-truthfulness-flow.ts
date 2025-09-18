@@ -63,7 +63,9 @@ const moodTruthfulnessFlow = ai.defineFlow(
     
     // If the AI flags the situation as requiring an alert, send the SMS.
     if (output?.alertCaretaker) {
-      await sendSmsWarning(input.studentName);
+      // This is an async operation, but we don't need to wait for it to complete
+      // before returning the analysis to the app. It can run in the background.
+      sendSmsWarning(input.studentName);
     }
     
     return output!;

@@ -165,7 +165,7 @@ export default function GamePage() {
     try {
         const analysis: MoodTruthfulnessOutput = await analyzeMoodTruthfulness({
             studentName: user.name,
-            mood: latestMood.mood_name,
+            mood: latestMood.text,
             answers: answerPayload
         });
 
@@ -173,6 +173,7 @@ export default function GamePage() {
             truthfulness: analysis.truthfulness,
             reasoning: analysis.reasoning,
             recommendation: analysis.recommendation,
+            alertCaretaker: analysis.alertCaretaker, // Pass the alert flag to Firebase
         };
         
         await update(moodRef, analysisUpdate);
@@ -247,5 +248,3 @@ export default function GamePage() {
     </div>
   );
 }
-
-    
