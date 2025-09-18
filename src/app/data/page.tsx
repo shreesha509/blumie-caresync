@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useEffect, useState, useRef } from "react";
@@ -19,6 +18,7 @@ import { ref, onValue } from "firebase/database";
 import { MoodDataTable } from "@/components/MoodDataTable";
 import { columns } from "@/components/columns";
 import { useToast } from "@/hooks/use-toast";
+import { Badge } from "@/components/ui/badge";
 
 export interface MoodData {
   student_id: string;
@@ -58,7 +58,22 @@ export default function DataPage() {
         const newMood: MoodData = data;
 
         setLatestMood(newMood);
-        setMoodHistory((prev) => [newMood, ...prev].slice(0, 50)); // keep history (limit to last 50)
+        
+        // keep history sorted (newest first), capped at 50
+        setMoodHistory((prev) => {
+          const updated = [newMood, ...prev];
+          return updated
+            .filter(
+              (item, index, self) =>
+                index === self.findIndex((m) => m.timestamp === item.timestamp) // avoid duplicates
+            )
+            .sort(
+              (a, b) =>
+                new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+            )
+            .slice(0, 50);
+        });
+
 
         // ✅ Trigger caretaker alert only when it switches to true
         const wasAlerted = previousMoodState.current?.alertCaretaker;
@@ -89,6 +104,24 @@ export default function DataPage() {
   // ✅ Prevent flashing before auth loads
   if (!user) return null;
   if (user.role !== "warden") return null;
+
+  const renderTruthfulness = (status?: MoodData["truthfulness"]) => {
+    if (!status) return null;
+    
+    if (status === "Processing...") {
+      return <Badge variant="outline">Processing...</Badge>
+    }
+    if (status === "Error") {
+      return <Badge variant="destructive">Error</Badge>
+    }
+    if (status === "Genuine") {
+        return <Badge variant="secondary">Genuine</Badge>;
+    }
+    if (status === "Potentially Inconsistent") {
+        return <Badge variant="destructive">Potentially Inconsistent</Badge>;
+    }
+    return <Badge>{status}</Badge>;
+  };
 
   return (
     <div className="container mx-auto py-10 animate-in fade-in">
@@ -124,6 +157,7 @@ export default function DataPage() {
                   <p className="font-bold text-lg">
                     {latestMood.student_id || "Unknown Student"}
                   </p>
+                  {renderTruthfulness(latestMood.truthfulness)}
                 </div>
                 <Separator />
                 <div className="flex items-start gap-4">
