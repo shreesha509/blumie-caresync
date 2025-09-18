@@ -39,8 +39,7 @@ export default function DataPage() {
   const [latestMood, setLatestMood] = useState<MoodData | null>(null);
   const [moodHistory, setMoodHistory] = useState<MoodData[]>([]);
 
-  // Ref to track the timestamp of the last notified mood to prevent duplicate alerts
-  const lastNotifiedTimestamp = useRef<string | null>(null);
+  const previousMoodState = useRef<MoodData | null>(null);
 
   useEffect(() => {
     if (user && user.role !== "warden") {
@@ -56,11 +55,11 @@ export default function DataPage() {
       if (data) {
         const newMood: MoodData = data;
         setLatestMood(newMood);
-        setMoodHistory([newMood]); // The app currently only shows the latest entry as history
+        setMoodHistory([newMood]);
 
-        // Check if this is a new, actionable alert that we haven't notified for yet.
-        if (newMood.alertCaretaker && newMood.timestamp !== lastNotifiedTimestamp.current) {
-           lastNotifiedTimestamp.current = newMood.timestamp; // Mark as notified
+        // Check if the alertCaretaker flag has just been set to true
+        const wasAlerted = previousMoodState.current?.alertCaretaker;
+        if (newMood.alertCaretaker && !wasAlerted) {
            toast({
                 variant: "destructive",
                 title: (
@@ -69,13 +68,16 @@ export default function DataPage() {
                   </div>
                 ),
                 description: `AI analysis for ${newMood.student_id} requires attention. An SMS has been sent to the primary caretaker.`,
-                duration: 10000, // Keep toast on screen longer
+                duration: 10000, 
             });
         }
+        
+        previousMoodState.current = newMood;
 
       } else {
         setLatestMood(null);
         setMoodHistory([]);
+        previousMoodState.current = null;
       }
     });
 
