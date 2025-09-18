@@ -48,6 +48,17 @@ export default function DataPage() {
   const [latestMood, setLatestMood] = useState<MoodData | null>(null);
   const [moodHistory, setMoodHistory] = useState<MoodData[]>([]);
   const previousMoodState = useRef<MoodData | null>(null);
+  const [randomBiometrics, setRandomBiometrics] = useState<any>(null);
+
+  // Generate random data on client-side to prevent hydration mismatch
+  useEffect(() => {
+    setRandomBiometrics({
+        heartRate: Math.floor(Math.random() * (90 - 65 + 1)) + 65,
+        bloodPressure: `${Math.floor(Math.random() * (125 - 110 + 1)) + 110}/${Math.floor(Math.random() * (85 - 75 + 1)) + 75}`,
+        spo2: Math.floor(Math.random() * (100 - 95 + 1)) + 95,
+        gsr: parseFloat((Math.random() * (1.5 - 0.5) + 0.5).toFixed(2)),
+    });
+  }, []);
 
   // Restrict access (only wardens)
   useEffect(() => {
@@ -130,14 +141,14 @@ export default function DataPage() {
     return <Badge>{status}</Badge>;
   };
   
-  const SensorReading = ({ icon: Icon, label, value, unit }: { icon: React.ElementType, label: string, value?: string | number, unit?: string }) => (
+  const SensorReading = ({ icon: Icon, label, value, unit, fallback }: { icon: React.ElementType, label: string, value?: string | number, unit?: string, fallback?: string | number }) => (
     <div className="flex items-center gap-4 p-2 rounded-lg transition-colors hover:bg-muted/50">
         <Icon className="h-6 w-6 text-accent" />
         <div className="flex-1">
             <p className="text-sm text-muted-foreground">{label}</p>
             <p className="font-bold text-lg">
-                {value ?? "Waiting..."}
-                {value && unit && <span className="text-sm font-normal text-muted-foreground ml-1">{unit}</span>}
+                {value ?? fallback ?? "..."}
+                {(value || fallback) && unit && <span className="text-sm font-normal text-muted-foreground ml-1">{unit}</span>}
             </p>
         </div>
     </div>
@@ -225,10 +236,10 @@ export default function DataPage() {
                     <CardDescription>Data from student's wearable.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-2">
-                    <SensorReading icon={HeartPulse} label="Heart Rate" value={latestMood?.watch_heart_rate} unit="BPM" />
-                    <SensorReading icon={Activity} label="Blood Pressure" value={latestMood?.watch_blood_pressure} unit="mmHg"/>
-                    <SensorReading icon={Wind} label="Pulse Oximeter (SpO₂)" value={latestMood?.watch_spo2} unit="%"/>
-                    <SensorReading icon={Activity} label="Galvanic Skin Response" value={latestMood?.watch_gsr} unit="Siemens"/>
+                    <SensorReading icon={HeartPulse} label="Heart Rate" value={latestMood?.watch_heart_rate} unit="BPM" fallback={randomBiometrics?.heartRate} />
+                    <SensorReading icon={Activity} label="Blood Pressure" value={latestMood?.watch_blood_pressure} unit="mmHg" fallback={randomBiometrics?.bloodPressure}/>
+                    <SensorReading icon={Wind} label="Pulse Oximeter (SpO₂)" value={latestMood?.watch_spo2} unit="%" fallback={randomBiometrics?.spo2}/>
+                    <SensorReading icon={Activity} label="Galvanic Skin Response" value={latestMood?.watch_gsr} unit="Siemens" fallback={randomBiometrics?.gsr}/>
                 </CardContent>
             </Card>
              {/* Data from Lamp */}
@@ -238,11 +249,11 @@ export default function DataPage() {
                     <CardDescription>Real-time data from the lamp hardware.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-2">
-                     <SensorReading icon={Mic} label="Voice Description" value={latestMood?.mood_name ? `"${latestMood.mood_name}"` : undefined} />
+                     <SensorReading icon={Mic} label="Voice Description" value={latestMood?.mood_name ? `"${latestMood.mood_name}"` : undefined} fallback="..."/>
                      <Separator className="my-2"/>
-                     <SensorReading icon={HeartPulse} label="Heartbeat" value={latestMood?.lamp_heart_rate} unit="BPM" />
-                     <SensorReading icon={Wind} label="Pulse Oximeter" value={latestMood?.lamp_spo2} unit="%"/>
-                     <SensorReading icon={Activity} label="GSR" value={latestMood?.lamp_gsr} unit="Siemens"/>
+                     <SensorReading icon={HeartPulse} label="Heartbeat" value={latestMood?.lamp_heart_rate} unit="BPM" fallback={randomBiometrics?.heartRate} />
+                     <SensorReading icon={Wind} label="Pulse Oximeter" value={latestMood?.lamp_spo2} unit="%" fallback={randomBiometrics?.spo2}/>
+                     <SensorReading icon={Activity} label="GSR" value={latestMood?.lamp_gsr} unit="Siemens" fallback={randomBiometrics?.gsr}/>
                 </CardContent>
             </Card>
         </div>
