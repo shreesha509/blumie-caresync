@@ -19,7 +19,6 @@ import { ref, onValue, off } from "firebase/database";
 import { MoodDataTable } from "@/components/MoodDataTable";
 import { columns } from "@/components/columns";
 import { useToast } from "@/hooks/use-toast";
-import { ToastAction } from "@/components/ui/toast";
 
 export interface MoodData {
   student_id: string;
