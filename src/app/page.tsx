@@ -123,7 +123,9 @@ export default function Home() {
       student_id: user.name,
       mood_name: moodText,
       mood_color: selectedColor.color,
-      mood_color_rgb: selectedColor.rgb,
+      r: selectedColor.rgb.r,
+      g: selectedColor.rgb.g,
+      b: selectedColor.rgb.b,
       timestamp: timestamp,
     };
     
@@ -131,7 +133,6 @@ export default function Home() {
         text: moodText,
         student_id: user.name,
         mood_color: selectedColor.color,
-        mood_color_rgb: selectedColor.rgb,
         timestamp: timestamp,
     };
     
@@ -183,11 +184,9 @@ export default function Home() {
   return (
     <div 
       className="flex min-h-[calc(100dvh-3.5rem)] w-full flex-col items-center justify-center p-4 transition-colors duration-1000"
-      style={{
-        backgroundColor: selectedColor.color !== "#000000" && selectedColor.color !== "#FFFFFF" 
-          ? `hsla(${new Date().getTime() % 360}, 100%, 95%, 0.1)` // A subtle changing hue
-          : 'hsl(var(--background))',
-        boxShadow: `inset 0 0 10rem 5rem ${selectedColor.color === "#000000" ? 'transparent' : selectedColor.color}1A`,
+       style={{ 
+        backgroundColor: `${selectedColor.color}1A`,
+        boxShadow: `inset 0 0 10rem 5rem ${selectedColor.color === "#000000" ? 'transparent' : selectedColor.color}33`,
       }}
     >
         <div className="mb-4 text-center">
@@ -251,3 +250,5 @@ export default function Home() {
     </div>
   );
 }
+
+    

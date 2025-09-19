@@ -26,6 +26,9 @@ export interface MoodData {
   mood_name: string;
   mood_color: string;
   timestamp: string;
+  r?: number;
+  g?: number;
+  b?: number;
   truthfulness?: "Genuine" | "Potentially Inconsistent" | "Processing..." | "Error";
   reasoning?: string;
   recommendation?: string;
@@ -261,3 +264,5 @@ export default function DataPage() {
     </div>
   );
 }
+
+    
