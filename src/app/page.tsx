@@ -119,25 +119,22 @@ export default function Home() {
 
     const timestamp = new Date().toISOString();
 
-    // Data for Firebase
     const firebaseMoodData = {
       student_id: user.name,
-      mood_name: moodText, // Use `mood_name` for consistency in the database
+      mood_name: moodText,
       mood_color: selectedColor.color,
       mood_color_rgb: selectedColor.rgb,
       timestamp: timestamp,
     };
     
-    // Data for local storage, which subsequent pages will use
     const localMoodData = {
-        text: moodText, // `text` is what the chat page expects
+        text: moodText,
         student_id: user.name,
         mood_color: selectedColor.color,
         mood_color_rgb: selectedColor.rgb,
         timestamp: timestamp,
     };
     
-    // Dispatch data to Firebase
     set(ref(database, 'blumie'), firebaseMoodData)
       .catch(error => {
         console.error("Error writing to Firebase:", error);
@@ -148,7 +145,6 @@ export default function Home() {
         });
       });
 
-    // Store data locally for the game and chat pages
     localStorage.setItem("latestMood", JSON.stringify(localMoodData));
 
     toast({
@@ -159,7 +155,7 @@ export default function Home() {
     router.push('/game');
   };
 
-  const handleColorWheelClick = (e: MouseEvent<HTMLDivElement>) => {
+  const handleColorChange = (e: MouseEvent<HTMLDivElement>) => {
     if (!colorWheelRef.current) return;
 
     const rect = colorWheelRef.current.getBoundingClientRect();
@@ -185,7 +181,15 @@ export default function Home() {
   }
 
   return (
-    <div className="flex min-h-[calc(100dvh-3.5rem)] w-full flex-col items-center justify-center p-4 transition-colors duration-1000">
+    <div 
+      className="flex min-h-[calc(100dvh-3.5rem)] w-full flex-col items-center justify-center p-4 transition-colors duration-1000"
+      style={{
+        backgroundColor: selectedColor.color !== "#000000" && selectedColor.color !== "#FFFFFF" 
+          ? `hsla(${new Date().getTime() % 360}, 100%, 95%, 0.1)` // A subtle changing hue
+          : 'hsl(var(--background))',
+        boxShadow: `inset 0 0 10rem 5rem ${selectedColor.color === "#000000" ? 'transparent' : selectedColor.color}1A`,
+      }}
+    >
         <div className="mb-4 text-center">
             <h1 className="text-3xl font-bold font-headline tracking-tight">Welcome, {user.name}!</h1>
         </div>
@@ -226,7 +230,8 @@ export default function Home() {
                 backgroundImage: conicGradient,
                 borderColor: selectedColor.color
               }}
-              onClick={handleColorWheelClick}
+              onMouseMove={handleColorChange}
+              onClick={handleColorChange}
             >
                <div 
                  className="absolute inset-0 rounded-full transition-all duration-200"
