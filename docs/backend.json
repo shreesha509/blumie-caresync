@@ -1,0 +1,113 @@
+{
+  "entities": {
+    "MoodEntry": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "MoodEntry",
+      "type": "object",
+      "description": "Represents a user's mood entry, including the mood description and selected color.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the mood entry."
+        },
+        "userId": {
+          "type": "string",
+          "description": "Reference to the User who created this mood entry. (Relationship: User 1:N MoodEntry)"
+        },
+        "moodDescription": {
+          "type": "string",
+          "description": "A textual description of the user's mood."
+        },
+        "moodColor": {
+          "type": "string",
+          "description": "The color associated with the mood, represented as a hexadecimal color code (e.g., #64B5F6)."
+        },
+        "timestamp": {
+          "type": "string",
+          "description": "The date and time when the mood entry was created.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "userId",
+        "moodDescription",
+        "moodColor",
+        "timestamp"
+      ]
+    },
+    "User": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "User",
+      "type": "object",
+      "description": "Represents a user of the MoodLight application.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the user."
+        },
+        "username": {
+          "type": "string",
+          "description": "The username of the user."
+        },
+        "email": {
+          "type": "string",
+          "description": "The email address of the user.",
+          "format": "email"
+        }
+      },
+      "required": [
+        "id",
+        "username",
+        "email"
+      ]
+    }
+  },
+  "auth": {
+    "providers": [
+      "password",
+      "anonymous"
+    ]
+  },
+  "firestore": {
+    "structure": [
+      {
+        "path": "/users/{userId}",
+        "definition": {
+          "entityName": "User",
+          "schema": {
+            "$ref": "#/backend/entities/User"
+          },
+          "description": "Stores user profiles. Only the user can read/write their own profile.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier for the user."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/moodEntries/{moodEntryId}",
+        "definition": {
+          "entityName": "MoodEntry",
+          "schema": {
+            "$ref": "#/backend/entities/MoodEntry"
+          },
+          "description": "Stores mood entries for a specific user. Includes denormalized 'userId' for authorization independence.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier for the user."
+            },
+            {
+              "name": "moodEntryId",
+              "description": "The unique identifier for the mood entry."
+            }
+          ]
+        }
+      }
+    ],
+    "reasoning": "Based on the application requirements and the provided data entities, the following Firestore structure is recommended:\n\n*   `/users/{userId}`: Stores user profiles. This collection uses path-based ownership, ensuring that only the user can access their own profile data.\n*   `/users/{userId}/moodEntries/{moodEntryId}`: Stores mood entries for each user. This subcollection enforces path-based ownership, guaranteeing that only the authenticated user (`request.auth.uid`) can read or write to their own mood entries. The `userId` is denormalized into the `MoodEntry` documents themselves to ensure Authorization Independence. This design supports the 'Mood Input' and 'Mood Display' features, providing private data storage owned by the user.\n\n**Authorization Independence:**\n\nAuthorization Independence is achieved by storing the `userId` inside the `MoodEntry` documents, specifically within the `/users/{userId}/moodEntries/{moodEntryId}` path. This eliminates the need for `get()` calls to parent documents (e.g., the `/users/{userId}` document) to verify ownership. Security rules can directly check if `request.auth.uid` matches the `userId` within the `MoodEntry` document, making operations atomic and rules easier to debug.\n\n**QAPs (Rules are not Filters):**\n\n*   Secure `list` operations are supported by the structural segregation of user data.  The path `/users/{userId}/moodEntries/{moodEntryId}` ensures that listing mood entries is always scoped to a specific user. The security rules can then easily enforce that only the authenticated user can list mood entries associated with their `userId`.  The absence of mixed data with different access needs within the same collection simplifies the security posture and avoids the need for complex filtering in rules."
+  }
+}

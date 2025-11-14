@@ -1,0 +1,70 @@
+/**
+ * @file Overview
+ * This ruleset enforces a strict user-ownership model for both user profiles and mood entries.
+ * All data is nested under /users/{userId}, ensuring that users can only access their own data.
+ *
+ * Data Structure:
+ * - /users/{userId}: Stores user profile information (username, email).
+ * - /users/{userId}/moodEntries/{moodEntryId}: Stores individual mood entries for each user.
+ *
+ * Key Security Decisions:
+ * - Users can only read and write their own profiles. Listing all users is disallowed.
+ * - Mood entries are strictly private and accessible only to the owning user.
+ * - Authorization Independence: The userId is denormalized into the MoodEntry documents themselves to ensure Authorization Independence.
+ */
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    /**
+     * @description Controls access to user profile documents.
+     * @path /users/{userId}
+     * @allow (create) - A user can create their own profile if the userId matches their auth UID.
+     * @allow (get, update, delete) - A user can read, update, and delete their own profile.
+     * @deny (create) - A user cannot create a profile with a userId that does not match their auth UID.
+     * @deny (get, update, delete) - A user cannot access or modify another user's profile.
+     * @principle Enforces document ownership for all operations.
+     */
+    match /users/{userId} {
+      function isSignedIn() {
+        return request.auth != null;
+      }
+
+      function isOwner(userId) {
+        return isSignedIn() && request.auth.uid == userId;
+      }
+
+      allow get: if isOwner(userId);
+      allow list: if false; // Do not allow listing of all users.
+
+      allow create: if isOwner(userId) && request.resource.data.id == request.auth.uid;
+      allow update: if isOwner(userId) && resource.data.id == request.resource.data.id;
+      allow delete: if isOwner(userId) && resource != null; // Ensure the document exists before deleting.
+    }
+
+    /**
+     * @description Controls access to mood entry documents within a user's profile.
+     * @path /users/{userId}/moodEntries/{moodEntryId}
+     * @allow (create) - A user can create a mood entry under their profile.
+     * @allow (get, list, update, delete) - A user can read, list, update, and delete their own mood entries.
+     * @deny (create, get, list, update, delete) - A user cannot access or modify another user's mood entries.
+     * @principle Enforces document ownership for all operations on mood entries.
+     */
+    match /users/{userId}/moodEntries/{moodEntryId} {
+      function isSignedIn() {
+        return request.auth != null;
+      }
+
+      function isOwner(userId) {
+        return isSignedIn() && request.auth.uid == userId;
+      }
+
+      allow get: if isOwner(userId);
+      allow list: if isOwner(userId);
+
+      allow create: if isOwner(userId) && request.resource.data.userId == request.auth.uid;
+      allow update: if isOwner(userId) && resource.data.userId == request.resource.data.userId && resource != null;
+      allow delete: if isOwner(userId) && resource != null; // Ensure the document exists before deleting.
+    }
+  }
+}
