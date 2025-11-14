@@ -18,7 +18,7 @@ import { useAuth } from "@/context/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Mic, MicOff } from "lucide-react";
 import { database } from "@/lib/firebase";
-import { ref, set, update } from "firebase/database";
+import { ref, set } from "firebase/database";
 
 const moodColors = [
   { name: "Red", color: "#FF0000", rgb: { r: 255, g: 0, b: 0 } },
@@ -55,12 +55,11 @@ export default function Home() {
     }
   }, [user, router]);
   
-  // This useEffect runs once on page load to set a default color in Firebase
+  // This useEffect runs once on page load to set a default color for the ESP32
   useEffect(() => {
-    if (user && user.name) {
-       const initialColor = moodColors[0];
-       // Set the color for the ESP32 at the root path
-       set(ref(database, '/mood_color'), initialColor.color);
+    if (user) {
+       // Set the initial color for the ESP32 at the root path
+       set(ref(database, '/mood_color'), moodColors[0].color);
     }
   }, [user]);
 
@@ -128,6 +127,7 @@ export default function Home() {
 
     const timestamp = new Date().toISOString();
 
+    // Data for the Warden Dashboard
     const fullMoodData = {
       student_id: user.name,
       mood_name: moodText,
@@ -139,6 +139,7 @@ export default function Home() {
       truthfulness: "Processing..."
     };
     
+    // Data for local storage to pass to the game/chat pages
     const localMoodData = {
         text: moodText,
         student_id: user.name,
@@ -147,10 +148,10 @@ export default function Home() {
     };
 
     try {
-      // Write the full data for the dashboard
+      // Write the full data for the dashboard to the /blumie path
       await set(ref(database, 'blumie'), fullMoodData);
       
-      // Also write the simple HEX color for the ESP32 to the root path
+      // Also ensure the final color is set for the ESP32
       await set(ref(database, '/mood_color'), selectedColor.color);
       
       localStorage.setItem("latestMood", JSON.stringify(localMoodData));
