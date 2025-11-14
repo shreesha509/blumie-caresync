@@ -72,10 +72,10 @@ export default function Home() {
       const esp32ColorData = `${selectedColor.rgb.r},${selectedColor.rgb.g},${selectedColor.rgb.b}`;
 
       // Set the default state for the dashboard and the ESP32 in two separate calls
-      set(ref(database, '/blumie'), initialFullData);
-      set(ref(database, '/blumie/mood_color'), esp32ColorData);
+      set(ref(database, 'blumie'), initialFullData);
+      set(ref(database, 'blumie/mood_color'), esp32ColorData);
     }
-  }, [user, selectedColor]);
+  }, [user]);
 
   useEffect(() => {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -158,12 +158,12 @@ export default function Home() {
         timestamp: timestamp,
     };
 
-    const esp32ColorData = `${selectedColor.rgb.r},${selected.rgb.g},${selectedColor.rgb.b}`;
+    const esp32ColorData = `${selectedColor.rgb.r},${selectedColor.rgb.g},${selectedColor.rgb.b}`;
     
     try {
       // Write data in two separate calls to avoid ancestor-path error
-      await set(ref(database, '/blumie'), fullMoodData);
-      await set(ref(database, '/blumie/mood_color'), esp32ColorData);
+      await set(ref(database, 'blumie'), fullMoodData);
+      await set(ref(database, 'blumie/mood_color'), esp32ColorData);
       
       localStorage.setItem("latestMood", JSON.stringify(localMoodData));
 
@@ -285,4 +285,3 @@ export default function Home() {
   );
 }
 
-    
