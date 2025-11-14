@@ -57,14 +57,14 @@ export default function Home() {
   }, [user, router]);
   
   useEffect(() => {
+    // This effect ensures an initial color is set in Firestore when the user loads the page.
     if (firestore && user) {
         const colorDocRef = doc(firestore, "esp32", "mood_color");
-        // Use a non-blocking setDoc call
         setDoc(colorDocRef, { hex: selectedColor.color }).catch(error => {
           console.error("Failed to set initial color:", error);
         });
     }
-  }, [user, firestore]);
+  }, [user, firestore]); // It should only run when the user or firestore instance is available.
 
   useEffect(() => {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -152,6 +152,7 @@ export default function Home() {
     };
 
     try {
+      // This writes the full data for the warden dashboard
       const docRef = doc(firestore, "moods", submissionId);
       await setDoc(docRef, fullMoodData);
       
@@ -188,11 +189,11 @@ export default function Home() {
     
     if (newColor.color !== selectedColor.color) {
       setSelectedColor(newColor);
+      // This is the real-time update for the ESP32
       const colorDocRef = doc(firestore, "esp32", "mood_color");
-      // This is a non-blocking call. We don't wait for it to complete.
+      // Use a non-blocking call for performance. We don't need to wait for it.
       setDoc(colorDocRef, { hex: newColor.color }).catch(error => {
-        console.error("Firestore write failed:", error);
-        // Optionally show a silent error indicator in the UI
+        console.error("Firestore write for ESP32 failed:", error);
       });
     }
   };
@@ -277,3 +278,5 @@ export default function Home() {
     </div>
   );
 }
+
+    
