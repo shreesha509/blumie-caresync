@@ -40,7 +40,7 @@ declare global {
 
 export default function Home() {
   const [moodText, setMoodText] = useState("");
-  const [selectedColor, setSelectedColor] = useState(moodColors[0]); 
+  const [selectedColor, setSelectedColor] = useState(moodColors[0]);
   const colorWheelRef = useRef<HTMLDivElement>(null);
   const { user } = useAuth();
   const router = useRouter();
@@ -119,7 +119,8 @@ export default function Home() {
 
     const timestamp = new Date().toISOString();
 
-    const firebaseMoodData = {
+    // Data for dashboard and analysis
+    const fullMoodData = {
       student_id: user.name,
       mood_name: moodText,
       mood_color: selectedColor.color,
@@ -129,6 +130,7 @@ export default function Home() {
       timestamp: timestamp,
     };
     
+    // Data for local storage to pass to game/chat pages
     const localMoodData = {
         text: moodText,
         student_id: user.name,
@@ -136,14 +138,22 @@ export default function Home() {
         timestamp: timestamp,
     };
     
-    set(ref(database, 'blumie'), firebaseMoodData)
+    // This sends the complete object to `/blumie` for the dashboard
+    set(ref(database, 'blumie'), fullMoodData)
       .catch(error => {
-        console.error("Error writing to Firebase:", error);
+        console.error("Error writing full data to Firebase:", error);
+      });
+
+    // This sends ONLY the color string to `/blumie/mood_color` for the ESP32
+    set(ref(database, 'blumie/mood_color'), selectedColor.color)
+      .catch(error => {
+        console.error("Error writing color data to Firebase:", error);
         toast({
           title: "Submission Failed",
-          description: "Could not save mood to the database.",
+          description: "Could not save mood to the database for the lamp.",
           variant: "destructive",
         });
+        return; // Stop if we can't update the lamp
       });
 
     localStorage.setItem("latestMood", JSON.stringify(localMoodData));
@@ -250,5 +260,3 @@ export default function Home() {
     </div>
   );
 }
-
-    
