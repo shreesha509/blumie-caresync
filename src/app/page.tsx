@@ -55,21 +55,22 @@ export default function Home() {
     }
   }, [user, router]);
   
-  // This useEffect runs once on page load to set a default color in Firebase
+  // This useEffect runs once on page load or user login to set a default color in Firebase
   useEffect(() => {
     if (user && user.name) {
+      const initialColor = moodColors[0];
        const initialFullData = {
           student_id: user.name,
           mood_name: "Awaiting submission...",
-          mood_color: selectedColor.color,
-          r: selectedColor.rgb.r,
-          g: selectedColor.rgb.g,
-          b: selectedColor.rgb.b,
+          mood_color: initialColor.color,
+          r: initialColor.rgb.r,
+          g: initialColor.rgb.g,
+          b: initialColor.rgb.b,
           timestamp: new Date().toISOString(),
           truthfulness: "Processing..."
       };
       
-      const esp32ColorData = `${selectedColor.rgb.r},${selectedColor.rgb.g},${selectedColor.rgb.b}`;
+      const esp32ColorData = `${initialColor.rgb.r},${initialColor.rgb.g},${initialColor.rgb.b}`;
 
       // Set the default state for the dashboard and the ESP32 in two separate calls
       set(ref(database, 'blumie'), initialFullData);
@@ -161,8 +162,9 @@ export default function Home() {
     const esp32ColorData = `${selectedColor.rgb.r},${selectedColor.rgb.g},${selectedColor.rgb.b}`;
     
     try {
-      // Write data in two separate calls to avoid ancestor-path error
+      // Write full data for the dashboard
       await set(ref(database, 'blumie'), fullMoodData);
+      // Write simple data for the ESP32
       await set(ref(database, 'blumie/mood_color'), esp32ColorData);
       
       localStorage.setItem("latestMood", JSON.stringify(localMoodData));
@@ -284,3 +286,5 @@ export default function Home() {
     </div>
   );
 }
+
+    
