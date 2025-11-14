@@ -18,7 +18,7 @@ import { useAuth } from "@/context/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Mic, MicOff } from "lucide-react";
 import { database } from "@/lib/firebase";
-import { ref, set } from "firebase/database";
+import { ref, set, update } from "firebase/database";
 
 const moodColors = [
   { name: "Red", color: "#FF0000", rgb: { r: 255, g: 0, b: 0 } },
@@ -59,19 +59,8 @@ export default function Home() {
   useEffect(() => {
     if (user && user.name) {
        const initialColor = moodColors[0];
-       const initialFullData = {
-          student_id: user.name,
-          mood_name: "Awaiting submission...",
-          mood_color: initialColor.color,
-          r: initialColor.rgb.r,
-          g: initialColor.rgb.g,
-          b: initialColor.rgb.b,
-          timestamp: new Date().toISOString(),
-          truthfulness: "Processing..."
-      };
-      
-      // Set the default state for the dashboard and the ESP32 in a single operation
-      set(ref(database, 'blumie'), initialFullData);
+       // Set the color for the ESP32 at the root path
+       set(ref(database, '/mood_color'), initialColor.color);
     }
   }, [user]);
 
@@ -147,6 +136,7 @@ export default function Home() {
       g: selectedColor.rgb.g,
       b: selectedColor.rgb.b,
       timestamp: timestamp,
+      truthfulness: "Processing..."
     };
     
     const localMoodData = {
@@ -157,10 +147,11 @@ export default function Home() {
     };
 
     try {
-      // Write the full data object to the parent path.
-      // This updates the data for the dashboard and implicitly updates
-      // `/blumie/mood_color` for the ESP32 in a single, atomic operation.
+      // Write the full data for the dashboard
       await set(ref(database, 'blumie'), fullMoodData);
+      
+      // Also write the simple HEX color for the ESP32 to the root path
+      await set(ref(database, '/mood_color'), selectedColor.color);
       
       localStorage.setItem("latestMood", JSON.stringify(localMoodData));
 
@@ -181,7 +172,7 @@ export default function Home() {
     }
   };
 
-  const handleColorChange = (e: MouseEvent<HTMLDivElement>) => {
+  const handleColorChange = async (e: MouseEvent<HTMLDivElement>) => {
     if (!colorWheelRef.current) return;
 
     const rect = colorWheelRef.current.getBoundingClientRect();
@@ -195,6 +186,8 @@ export default function Home() {
     
     if (newColor.color !== selectedColor.color) {
       setSelectedColor(newColor);
+      // For live color updates, write the simple HEX string for the ESP32
+      await set(ref(database, '/mood_color'), newColor.color);
     }
   };
   
