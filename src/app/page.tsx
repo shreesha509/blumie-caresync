@@ -55,6 +55,26 @@ export default function Home() {
     }
   }, [user, router]);
   
+  // This useEffect runs once on page load to set a default color in Firebase
+  useEffect(() => {
+    if (user && user.name) {
+       const initialData = {
+          student_id: user.name,
+          mood_name: "Awaiting submission...",
+          mood_color: selectedColor.color,
+          r: selectedColor.rgb.r,
+          g: selectedColor.rgb.g,
+          b: selectedColor.rgb.b,
+          timestamp: new Date().toISOString(),
+          truthfulness: "Processing..."
+      };
+      // Set the default state for the dashboard
+      set(ref(database, 'blumie'), initialData);
+      // Set the initial color for the ESP32
+      set(ref(database, 'blumie/mood_color'), selectedColor.color);
+    }
+  }, [user]); // It runs when the user data is available
+
   useEffect(() => {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (SpeechRecognition) {
@@ -104,7 +124,7 @@ export default function Home() {
     }
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (isRecording) {
       speechRecognitionRef.current.stop();
     }
@@ -138,32 +158,30 @@ export default function Home() {
         timestamp: timestamp,
     };
     
-    // This sends the complete object to `/blumie` for the dashboard
-    set(ref(database, 'blumie'), fullMoodData)
-      .catch(error => {
-        console.error("Error writing full data to Firebase:", error);
+    try {
+      // This sends the complete object to `/blumie` for the dashboard
+      await set(ref(database, 'blumie'), fullMoodData);
+      
+      // This sends ONLY the color string to `/blumie/mood_color` for the ESP32
+      await set(ref(database, 'blumie/mood_color'), selectedColor.color);
+      
+      localStorage.setItem("latestMood", JSON.stringify(localMoodData));
+
+      toast({
+        title: "Mood Submitted!",
+        description: "Now, let's play a quick game.",
       });
 
-    // This sends ONLY the color string to `/blumie/mood_color` for the ESP32
-    set(ref(database, 'blumie/mood_color'), selectedColor.color)
-      .catch(error => {
-        console.error("Error writing color data to Firebase:", error);
-        toast({
+      router.push('/game');
+
+    } catch (error) {
+       console.error("Error writing to Firebase:", error);
+       toast({
           title: "Submission Failed",
-          description: "Could not save mood to the database for the lamp.",
+          description: "Could not save mood to the database.",
           variant: "destructive",
         });
-        return; // Stop if we can't update the lamp
-      });
-
-    localStorage.setItem("latestMood", JSON.stringify(localMoodData));
-
-    toast({
-      title: "Mood Submitted!",
-      description: "Now, let's play a quick game.",
-    });
-
-    router.push('/game');
+    }
   };
 
   const handleColorChange = (e: MouseEvent<HTMLDivElement>) => {
@@ -176,8 +194,12 @@ export default function Home() {
     
     const segmentAngle = 360 / moodColors.length;
     const colorIndex = Math.floor(angle / segmentAngle);
+    const newColor = moodColors[colorIndex];
     
-    setSelectedColor(moodColors[colorIndex]);
+    setSelectedColor(newColor);
+    
+    // Live update the color for the ESP32 as it's being selected
+    set(ref(database, 'blumie/mood_color'), newColor.color);
   };
   
   const conicGradient = `conic-gradient(${moodColors
