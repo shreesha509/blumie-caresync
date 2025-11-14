@@ -18,7 +18,7 @@ import { useAuth } from "@/context/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Mic, MicOff } from "lucide-react";
 import { database } from "@/lib/firebase";
-import { ref, set, update } from "firebase/database";
+import { ref, set } from "firebase/database";
 
 const moodColors = [
   { name: "Red", color: "#FF0000", rgb: { r: 255, g: 0, b: 0 } },
@@ -69,15 +69,11 @@ export default function Home() {
           truthfulness: "Processing..."
       };
       
-      // Format as CSV string for ESP32
       const esp32ColorData = `${selectedColor.rgb.r},${selectedColor.rgb.g},${selectedColor.rgb.b}`;
 
-      // Set the default state for the dashboard
-      const updates: { [key: string]: any } = {};
-      updates['/blumie'] = initialFullData;
-      updates['/blumie/mood_color'] = esp32ColorData;
-      
-      update(ref(database), updates);
+      // Set the default state for the dashboard and the ESP32 in two separate calls
+      set(ref(database, '/blumie'), initialFullData);
+      set(ref(database, '/blumie/mood_color'), esp32ColorData);
     }
   }, [user, selectedColor]);
 
@@ -145,7 +141,6 @@ export default function Home() {
 
     const timestamp = new Date().toISOString();
 
-    // Data for dashboard and analysis
     const fullMoodData = {
       student_id: user.name,
       mood_name: moodText,
@@ -156,7 +151,6 @@ export default function Home() {
       timestamp: timestamp,
     };
     
-    // Data for local storage to pass to game/chat pages
     const localMoodData = {
         text: moodText,
         student_id: user.name,
@@ -164,16 +158,12 @@ export default function Home() {
         timestamp: timestamp,
     };
 
-    // Data for ESP32 in simple CSV string format
-    const esp32ColorData = `${selectedColor.rgb.r},${selectedColor.rgb.g},${selectedColor.rgb.b}`;
+    const esp32ColorData = `${selectedColor.rgb.r},${selected.rgb.g},${selectedColor.rgb.b}`;
     
     try {
-      // Use a multi-path update to write both sets of data atomically
-      const updates: { [key: string]: any } = {};
-      updates['/blumie'] = fullMoodData;
-      updates['/blumie/mood_color'] = esp32ColorData;
-      
-      await update(ref(database), updates);
+      // Write data in two separate calls to avoid ancestor-path error
+      await set(ref(database, '/blumie'), fullMoodData);
+      await set(ref(database, '/blumie/mood_color'), esp32ColorData);
       
       localStorage.setItem("latestMood", JSON.stringify(localMoodData));
 
@@ -294,3 +284,5 @@ export default function Home() {
     </div>
   );
 }
+
+    
