@@ -45,34 +45,27 @@ export default function Home() {
   const { user } = useAppAuth();
   const router = useRouter();
   const { toast } = useToast();
-  // Destructure firestore and loading states from useFirebase
-  const { firestore, areServicesAvailable, isUserLoading } = useFirebase();
+  const { firestore, isUserLoading } = useFirebase();
 
   const [isRecording, setIsRecording] = useState(false);
   const speechRecognitionRef = useRef<any>(null);
-
-  const isLoading = !areServicesAvailable || isUserLoading;
-
-  useEffect(() => {
-    // Debug log to check the firestore instance on component mount
-    console.log('Firebase services loaded. Firestore instance:', firestore);
-  }, [firestore]);
 
   useEffect(() => {
     if (user && user.role === "warden") {
       router.replace("/data");
     }
   }, [user, router]);
-  
-  // This effect ensures an initial color is set in Firestore when the user loads the page and services are ready.
+
   useEffect(() => {
-    if (firestore && user && areServicesAvailable) {
+    // Write initial color only when firestore and user are available
+    if (firestore && user) {
         const colorDocRef = doc(firestore, "esp32", "mood_color");
+        // Non-blocking write
         setDoc(colorDocRef, { hex: selectedColor.color }).catch(error => {
           console.error("Failed to set initial color:", error);
         });
     }
-  }, [user, firestore, areServicesAvailable, selectedColor.color]); 
+  }, [user, firestore, selectedColor.color]);
 
   useEffect(() => {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -183,12 +176,10 @@ export default function Home() {
     }
   };
 
-  const handleColorChange = async (e: MouseEvent<HTMLDivElement>) => {
-    // Add console logs for detailed debugging as requested
-    console.log('handleColorChange triggered.'); 
+  const handleColorChange = (e: MouseEvent<HTMLDivElement>) => {
     if (!colorWheelRef.current || !firestore) {
-      console.log('handleColorChange returned early. Firestore available:', !!firestore);
-      return;
+        console.log('handleColorChange returned early. Firestore available:', !!firestore);
+        return;
     }
 
     const rect = colorWheelRef.current.getBoundingClientRect();
@@ -203,14 +194,11 @@ export default function Home() {
     if (newColor.color !== selectedColor.color) {
       setSelectedColor(newColor);
       
-      // --- Your requested logs ---
       console.log('Firestore instance available:', !!firestore);
       console.log('Attempting to set color:', newColor.color);
-      // -------------------------
-
+      
       const colorDocRef = doc(firestore, "esp32", "mood_color");
       setDoc(colorDocRef, { hex: newColor.color }).catch(error => {
-        // This is the most important log as per your instructions
         console.error("Firestore write for ESP32 failed:", error);
       });
     }
@@ -223,8 +211,7 @@ export default function Home() {
     })
     .join(", ")})`;
 
-  // Render a loading state until Firebase is ready
-  if (isLoading || !user || user.role !== 'student') {
+  if (isUserLoading || !user || user.role !== 'student') {
     return <div className="flex min-h-[calc(100dvh-3.5rem)] w-full flex-col items-center justify-center"><Loader2 className="animate-spin" /></div>;
   }
 
@@ -256,7 +243,7 @@ export default function Home() {
               onChange={(e) => setMoodText(e.target.value)}
               rows={3}
               className="bg-background/80 pr-12"
-              disabled={isLoading}
+              disabled={isUserLoading}
             />
              <Button
                 variant="ghost"
@@ -264,7 +251,7 @@ export default function Home() {
                 className={cn("absolute right-2 top-1/2 -translate-y-1/2", isRecording && "text-red-500 hover:text-red-600")}
                 onClick={toggleRecording}
                 aria-label="Toggle recording"
-                disabled={isLoading}
+                disabled={isUserLoading}
             >
                 {isRecording ? <MicOff /> : <Mic />}
             </Button>
@@ -275,14 +262,14 @@ export default function Home() {
               ref={colorWheelRef}
               className={cn(
                 "relative h-40 w-40 rounded-full border-4",
-                isLoading ? "cursor-not-allowed opacity-50" : "cursor-pointer"
+                isUserLoading ? "cursor-not-allowed opacity-50" : "cursor-pointer"
               )}
               style={{ 
                 backgroundImage: conicGradient,
                 borderColor: selectedColor.color
               }}
-              onMouseMove={!isLoading ? handleColorChange : undefined}
-              onClick={!isLoading ? handleColorChange : undefined}
+              onMouseMove={!isUserLoading ? handleColorChange : undefined}
+              onClick={!isUserLoading ? handleColorChange : undefined}
             >
                <div 
                  className="absolute inset-0 rounded-full transition-all duration-200"
@@ -294,8 +281,8 @@ export default function Home() {
           </div>
         </CardContent>
         <CardFooter>
-          <Button onClick={handleSubmit} className="w-full" variant="default" disabled={isLoading}>
-            {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+          <Button onClick={handleSubmit} className="w-full" variant="default" disabled={isUserLoading}>
+            {isUserLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             Submit & Continue
           </Button>
         </CardFooter>
@@ -303,5 +290,3 @@ export default function Home() {
     </div>
   );
 }
-
-    
