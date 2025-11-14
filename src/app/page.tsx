@@ -51,6 +51,11 @@ export default function Home() {
   const speechRecognitionRef = useRef<any>(null);
 
   useEffect(() => {
+    // Debug log to check the firestore instance on component mount
+    console.log('Firebase services loaded. Firestore instance:', firestore);
+  }, [firestore]);
+
+  useEffect(() => {
     if (user && user.role === "warden") {
       router.replace("/data");
     }
@@ -176,7 +181,11 @@ export default function Home() {
   };
 
   const handleColorChange = async (e: MouseEvent<HTMLDivElement>) => {
-    if (!colorWheelRef.current || !firestore) return;
+    console.log('handleColorChange triggered.'); // Log function entry
+    if (!colorWheelRef.current || !firestore) {
+      console.log('handleColorChange returned early. Firestore available:', !!firestore);
+      return;
+    }
 
     const rect = colorWheelRef.current.getBoundingClientRect();
     const x = e.clientX - rect.left - rect.width / 2;
@@ -189,10 +198,15 @@ export default function Home() {
     
     if (newColor.color !== selectedColor.color) {
       setSelectedColor(newColor);
-      // This is the real-time update for the ESP32, now using Firestore
+      
+      // --- Your requested logs ---
+      console.log('Firestore instance available:', !!firestore);
+      console.log('Attempting to set color:', newColor.color);
+      // -------------------------
+
       const colorDocRef = doc(firestore, "esp32", "mood_color");
-      // Use a non-blocking call for performance. We don't need to wait for it.
       setDoc(colorDocRef, { hex: newColor.color }).catch(error => {
+        // This is the most important log as per your instructions
         console.error("Firestore write for ESP32 failed:", error);
       });
     }
@@ -278,5 +292,3 @@ export default function Home() {
     </div>
   );
 }
-
-    
