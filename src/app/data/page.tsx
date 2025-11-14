@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import {
   Card,
@@ -13,15 +13,16 @@ import {
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { User as UserIcon, ShieldAlert, HeartPulse, Activity, Wind, Mic } from "lucide-react";
-import { useAuth } from "@/context/AuthContext";
+import { useAuth as useAppAuth } from "@/context/AuthContext";
 import { formatDistanceToNow } from "date-fns";
-import { database } from "@/lib/firebase";
-import { ref, onValue } from "firebase/database";
+import { useCollection, useMemoFirebase, useFirebase } from "@/firebase";
+import { collection, query, orderBy, limit } from "firebase/firestore";
 import { MoodDataTable } from "@/components/MoodDataTable";
 import { columns } from "@/components/columns";
 import { useToast } from "@/hooks/use-toast";
 
 export interface MoodData {
+  id: string; // Added for Firestore documents
   student_id: string;
   mood_name: string;
   mood_color: string;
@@ -44,12 +45,12 @@ export interface MoodData {
 }
 
 export default function DataPage() {
-  const { user } = useAuth();
+  const { user } = useAppAuth();
   const router = useRouter();
   const { toast } = useToast();
+  const { firestore } = useFirebase();
 
   const [latestMood, setLatestMood] = useState<MoodData | null>(null);
-  const [moodHistory, setMoodHistory] = useState<MoodData[]>([]);
   const previousMoodState = useRef<MoodData | null>(null);
   const [randomBiometrics, setRandomBiometrics] = useState<any>(null);
 
@@ -69,59 +70,36 @@ export default function DataPage() {
       router.replace("/");
     }
   }, [user, router]);
+  
+  const moodHistoryQuery = useMemoFirebase(() => {
+      if (!firestore) return null;
+      return query(collection(firestore, "moods"), orderBy("timestamp", "desc"));
+  }, [firestore]);
 
-  // Listen for real-time mood updates
+  const { data: moodHistory = [], isLoading } = useCollection<MoodData>(moodHistoryQuery);
+
   useEffect(() => {
-    const moodRef = ref(database, "blumie");
+    if (moodHistory && moodHistory.length > 0) {
+      const newLatestMood = moodHistory[0];
+      setLatestMood(newLatestMood);
 
-    const unsubscribe = onValue(moodRef, (snapshot) => {
-      const data = snapshot.val();
-
-      if (data) {
-        const newMood: MoodData = data;
-
-        setLatestMood(newMood);
-
-        // keep history sorted (newest first), capped at 50
-        setMoodHistory((prev) => {
-          const updated = [newMood, ...prev];
-          return updated
-            .filter(
-              (item, index, self) =>
-                index === self.findIndex((m) => m.timestamp === item.timestamp) // avoid duplicates
-            )
-            .sort(
-              (a, b) =>
-                new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
-            )
-            .slice(0, 50);
+      const wasAlerted = previousMoodState.current?.alertCaretaker;
+      if (newLatestMood.alertCaretaker && !wasAlerted) {
+        toast({
+          variant: "destructive",
+          title: (
+            <div className="flex items-center gap-2">
+              <ShieldAlert /> High-Risk Alert
+            </div>
+          ),
+          description: `AI analysis for ${newLatestMood.student_id || "Unknown Student"} requires attention. An SMS has been sent to the primary caretaker.`,
+          duration: 10000,
         });
-
-        // Trigger caretaker alert only when flag flips to true
-        const wasAlerted = previousMoodState.current?.alertCaretaker;
-        if (newMood.alertCaretaker && !wasAlerted) {
-          toast({
-            variant: "destructive",
-            title: (
-              <div className="flex items-center gap-2">
-                <ShieldAlert /> High-Risk Alert
-              </div>
-            ),
-            description: `AI analysis for ${newMood.student_id || "Unknown Student"} requires attention. An SMS has been sent to the primary caretaker.`,
-            duration: 10000,
-          });
-        }
-
-        previousMoodState.current = newMood;
-      } else {
-        setLatestMood(null);
-        setMoodHistory([]);
-        previousMoodState.current = null;
       }
-    });
+      previousMoodState.current = newLatestMood;
+    }
+  }, [moodHistory, toast]);
 
-    return () => unsubscribe();
-  }, [toast]);
 
   if (!user || user.role !== "warden") return null;
 
@@ -264,5 +242,3 @@ export default function DataPage() {
     </div>
   );
 }
-
-    

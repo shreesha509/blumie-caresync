@@ -15,14 +15,14 @@ import {
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useToast } from "@/hooks/use-toast";
-import { useAuth } from "@/context/AuthContext";
+import { useAuth as useAppAuth } from "@/context/AuthContext";
 import { Loader2, ArrowLeft, ArrowRight } from "lucide-react";
 import { analyzeMoodTruthfulness } from "@/ai/flows/mood-truthfulness-flow";
 import type { MoodTruthfulnessOutput } from "@/ai/schemas/mood-truthfulness";
 import { Carousel, CarouselContent, CarouselItem, type CarouselApi } from "@/components/ui/carousel"
 import { Progress } from "@/components/ui/progress";
-import { database } from "@/lib/firebase";
-import { ref, update } from "firebase/database";
+import { useFirebase } from "@/firebase";
+import { doc, updateDoc } from "firebase/firestore";
 
 
 const allQuestions = [
@@ -62,11 +62,12 @@ export default function GamePage() {
   const [questions, setQuestions] = useState<{id: string; question: string; options: string[]}[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
-  const { user } = useAuth();
+  const { user } = useAppAuth();
   const router = useRouter();
   const [api, setApi] = useState<CarouselApi>()
   const [current, setCurrent] = useState(0)
   const [count, setCount] = useState(0)
+  const { firestore } = useFirebase();
   
   useEffect(() => {
     const shuffled = shuffleArray(allQuestions).slice(0, 10);
@@ -113,10 +114,10 @@ export default function GamePage() {
       });
       return;
     }
-    if (!user?.name) {
+    if (!user?.name || !firestore) {
        toast({
         title: "User Not Found",
-        description: "Could not identify the current user.",
+        description: "Could not identify the current user or database.",
         variant: "destructive",
       });
       return;
@@ -132,6 +133,7 @@ export default function GamePage() {
     }
     
     const latestMood = JSON.parse(storedMoodData);
+    const submissionId = `${latestMood.student_id.replace(/\s+/g, '_')}_${new Date(latestMood.timestamp).getTime()}`;
     
     const answerPayload = {
         answer1: answers[questions[0].id] || "",
@@ -152,7 +154,7 @@ export default function GamePage() {
     };
     localStorage.setItem("latestMood", JSON.stringify(intermediateMoodData));
 
-    const moodRef = ref(database, 'blumie');
+    const moodDocRef = doc(firestore, 'moods', submissionId);
     
     try {
         const analysis: MoodTruthfulnessOutput = await analyzeMoodTruthfulness({
@@ -168,21 +170,22 @@ export default function GamePage() {
             alertCaretaker: analysis.alertCaretaker,
         };
         
-        // This combines the original mood data with the new analysis data
-        // and updates Firebase in a single operation.
-        await update(moodRef, analysisUpdate);
+        await updateDoc(moodDocRef, analysisUpdate);
 
         toast({
           title: "Thank You!",
           description: "Let's have a quick chat to reflect on your answers.",
         });
 
-        // Navigate only after successful analysis and DB update
         router.push('/chat');
 
     } catch(error) {
         console.error("Analysis or DB update error:", error);
-        await update(moodRef, { truthfulness: "Error" });
+        try {
+          await updateDoc(moodDocRef, { truthfulness: "Error" });
+        } catch (updateError) {
+          console.error("Failed to update truthfulness to Error:", updateError);
+        }
         toast({
             title: "Analysis Failed",
             description: "Could not analyze your responses. Please try again.",

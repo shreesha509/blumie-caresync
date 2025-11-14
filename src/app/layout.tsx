@@ -4,6 +4,7 @@ import './globals.css';
 import { Header } from '@/components/Header';
 import { Toaster } from "@/components/ui/toaster";
 import { AuthProvider } from '@/context/AuthContext';
+import { FirebaseClientProvider } from '@/firebase';
 
 export const metadata: Metadata = {
   title: 'MoodLight',
@@ -24,11 +25,13 @@ export default function RootLayout({
       </head>
       <body className={cn("min-h-screen bg-background font-body antialiased")}>
         <AuthProvider>
-          <div className="relative flex min-h-dvh flex-col">
-            <Header />
-            <main className="flex-1">{children}</main>
-          </div>
-          <Toaster />
+          <FirebaseClientProvider>
+            <div className="relative flex min-h-dvh flex-col">
+              <Header />
+              <main className="flex-1">{children}</main>
+            </div>
+            <Toaster />
+          </FirebaseClientProvider>
         </AuthProvider>
       </body>
     </html>

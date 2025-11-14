@@ -14,11 +14,11 @@ import {
 } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
-import { useAuth } from "@/context/AuthContext";
+import { useAuth as useAppAuth } from "@/context/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Mic, MicOff } from "lucide-react";
-import { database } from "@/lib/firebase";
-import { ref, set } from "firebase/database";
+import { useFirebase, useFirestore } from "@/firebase";
+import { doc, setDoc } from "firebase/firestore";
 
 const moodColors = [
   { name: "Red", color: "#FF0000", rgb: { r: 255, g: 0, b: 0 } },
@@ -42,9 +42,10 @@ export default function Home() {
   const [moodText, setMoodText] = useState("");
   const [selectedColor, setSelectedColor] = useState(moodColors[0]);
   const colorWheelRef = useRef<HTMLDivElement>(null);
-  const { user } = useAuth();
+  const { user } = useAppAuth();
   const router = useRouter();
   const { toast } = useToast();
+  const { firestore } = useFirebase();
 
   const [isRecording, setIsRecording] = useState(false);
   const speechRecognitionRef = useRef<any>(null);
@@ -55,13 +56,12 @@ export default function Home() {
     }
   }, [user, router]);
   
-  // This useEffect runs once on page load to set a default color for the ESP32
   useEffect(() => {
-    if (user) {
-       // Set the initial color for the ESP32 at the root path
-       set(ref(database, '/mood_color'), moodColors[0].color);
+    if (firestore && user) {
+        const colorDocRef = doc(firestore, "esp32", "mood_color");
+        setDoc(colorDocRef, { hex: selectedColor.color });
     }
-  }, [user]);
+  }, [user, firestore, selectedColor]);
 
   useEffect(() => {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -120,12 +120,13 @@ export default function Home() {
        toast({ title: "Please describe your mood", variant: "destructive" });
        return;
     }
-     if (!user || !user.name) {
-      toast({ title: "User not found", variant: "destructive" });
+     if (!user || !user.name || !firestore) {
+      toast({ title: "User or database not found", variant: "destructive" });
       return;
     }
 
     const timestamp = new Date().toISOString();
+    const submissionId = `${user.name.replace(/\s+/g, '_')}_${Date.now()}`;
 
     // Data for the Warden Dashboard
     const fullMoodData = {
@@ -139,7 +140,6 @@ export default function Home() {
       truthfulness: "Processing..."
     };
     
-    // Data for local storage to pass to the game/chat pages
     const localMoodData = {
         text: moodText,
         student_id: user.name,
@@ -148,11 +148,11 @@ export default function Home() {
     };
 
     try {
-      // Write the full data for the dashboard to the /blumie path
-      await set(ref(database, 'blumie'), fullMoodData);
+      const docRef = doc(firestore, "moods", submissionId);
+      await setDoc(docRef, fullMoodData);
       
-      // Also ensure the final color is set for the ESP32
-      await set(ref(database, '/mood_color'), selectedColor.color);
+      const colorDocRef = doc(firestore, "esp32", "mood_color");
+      await setDoc(colorDocRef, { hex: selectedColor.color });
       
       localStorage.setItem("latestMood", JSON.stringify(localMoodData));
 
@@ -164,7 +164,7 @@ export default function Home() {
       router.push('/game');
 
     } catch (error) {
-       console.error("Error writing to Firebase:", error);
+       console.error("Error writing to Firestore:", error);
        toast({
           title: "Submission Failed",
           description: "Could not save mood to the database.",
@@ -174,7 +174,7 @@ export default function Home() {
   };
 
   const handleColorChange = async (e: MouseEvent<HTMLDivElement>) => {
-    if (!colorWheelRef.current) return;
+    if (!colorWheelRef.current || !firestore) return;
 
     const rect = colorWheelRef.current.getBoundingClientRect();
     const x = e.clientX - rect.left - rect.width / 2;
@@ -187,8 +187,8 @@ export default function Home() {
     
     if (newColor.color !== selectedColor.color) {
       setSelectedColor(newColor);
-      // For live color updates, write the simple HEX string for the ESP32
-      await set(ref(database, '/mood_color'), newColor.color);
+      const colorDocRef = doc(firestore, "esp32", "mood_color");
+      await setDoc(colorDocRef, { hex: newColor.color });
     }
   };
   
