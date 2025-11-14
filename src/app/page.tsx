@@ -55,10 +55,10 @@ export default function Home() {
     }
   }, [user, router]);
   
-  // This useEffect runs once on page load or user login to set a default color in Firebase
+  // This useEffect runs once on page load to set a default color in Firebase
   useEffect(() => {
     if (user && user.name) {
-      const initialColor = moodColors[0];
+       const initialColor = moodColors[0];
        const initialFullData = {
           student_id: user.name,
           mood_name: "Awaiting submission...",
@@ -70,7 +70,7 @@ export default function Home() {
           truthfulness: "Processing..."
       };
       
-      const esp32ColorData = `${initialColor.rgb.r},${initialColor.rgb.g},${initialColor.rgb.b}`;
+      const esp32ColorData = initialColor.color;
 
       // Set the default state for the dashboard and the ESP32 in two separate calls
       set(ref(database, 'blumie'), initialFullData);
@@ -159,12 +159,13 @@ export default function Home() {
         timestamp: timestamp,
     };
 
-    const esp32ColorData = `${selectedColor.rgb.r},${selectedColor.rgb.g},${selectedColor.rgb.b}`;
+    const esp32ColorData = selectedColor.color;
     
     try {
-      // Write full data for the dashboard
+      // Write data in two separate calls to avoid ancestor-path error
+      // 1. Write full data for the dashboard
       await set(ref(database, 'blumie'), fullMoodData);
-      // Write simple data for the ESP32
+      // 2. Write simple data for the ESP32
       await set(ref(database, 'blumie/mood_color'), esp32ColorData);
       
       localStorage.setItem("latestMood", JSON.stringify(localMoodData));
@@ -201,7 +202,7 @@ export default function Home() {
     if (newColor.color !== selectedColor.color) {
       setSelectedColor(newColor);
       // Live update the color for the ESP32 as it's being selected
-      const esp32ColorData = `${newColor.rgb.r},${newColor.rgb.g},${newColor.rgb.b}`;
+      const esp32ColorData = newColor.color;
       set(ref(database, 'blumie/mood_color'), esp32ColorData);
     }
   };
@@ -286,5 +287,3 @@ export default function Home() {
     </div>
   );
 }
-
-    
