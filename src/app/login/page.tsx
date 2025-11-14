@@ -65,7 +65,7 @@ export default function LoginPage() {
   return (
     <div className="relative flex min-h-dvh w-full flex-col items-center justify-center p-4">
        <Image
-          src="https://i.postimg.cc/c12C8M5A/Screenshot-2024-07-26-at-2-33-28-PM.png"
+          src="https://picsum.photos/seed/loginbg/1200/800"
           alt="BNMIT Logo Background"
           layout="fill"
           objectFit="cover"
