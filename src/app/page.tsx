@@ -64,7 +64,7 @@ export default function Home() {
           console.error("Failed to set initial color:", error);
         });
     }
-  }, [user, firestore]); // It should only run when the user or firestore instance is available.
+  }, [user, firestore]); 
 
   useEffect(() => {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -189,7 +189,7 @@ export default function Home() {
     
     if (newColor.color !== selectedColor.color) {
       setSelectedColor(newColor);
-      // This is the real-time update for the ESP32
+      // This is the real-time update for the ESP32, now using Firestore
       const colorDocRef = doc(firestore, "esp32", "mood_color");
       // Use a non-blocking call for performance. We don't need to wait for it.
       setDoc(colorDocRef, { hex: newColor.color }).catch(error => {
