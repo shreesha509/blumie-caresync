@@ -153,15 +153,7 @@ export default function GamePage() {
     localStorage.setItem("latestMood", JSON.stringify(intermediateMoodData));
 
     const moodRef = ref(database, 'blumie');
-    await update(moodRef, { truthfulness: "Processing..." });
     
-    toast({
-      title: "Thank You!",
-      description: "Let's have a quick chat to reflect on your answers.",
-    });
-
-    router.push('/chat');
-
     try {
         const analysis: MoodTruthfulnessOutput = await analyzeMoodTruthfulness({
             studentName: user.name,
@@ -173,14 +165,31 @@ export default function GamePage() {
             truthfulness: analysis.truthfulness,
             reasoning: analysis.reasoning,
             recommendation: analysis.recommendation,
-            alertCaretaker: analysis.alertCaretaker, // Pass the alert flag to Firebase
+            alertCaretaker: analysis.alertCaretaker,
         };
         
+        // This combines the original mood data with the new analysis data
+        // and updates Firebase in a single operation.
         await update(moodRef, analysisUpdate);
 
+        toast({
+          title: "Thank You!",
+          description: "Let's have a quick chat to reflect on your answers.",
+        });
+
+        // Navigate only after successful analysis and DB update
+        router.push('/chat');
+
     } catch(error) {
+        console.error("Analysis or DB update error:", error);
         await update(moodRef, { truthfulness: "Error" });
-        console.error("Background analysis or DB update error:", error);
+        toast({
+            title: "Analysis Failed",
+            description: "Could not analyze your responses. Please try again.",
+            variant: "destructive",
+        });
+    } finally {
+        setIsLoading(false);
     }
   };
   
@@ -241,7 +250,7 @@ export default function GamePage() {
         <CardFooter>
           <Button className="w-full" onClick={handleSubmit} disabled={isLoading || !allQuestionsAnswered}>
             {isLoading && <Loader2 className="animate-spin" />}
-            {isLoading ? "Preparing Chat..." : "Submit & Continue to Chat"}
+            {isLoading ? "Analyzing..." : "Submit & Continue to Chat"}
           </Button>
         </CardFooter>
       </Card>
