@@ -17,7 +17,7 @@ import { cn } from "@/lib/utils";
 import { useAuth as useAppAuth } from "@/context/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Mic, MicOff } from "lucide-react";
-import { useFirebase, useFirestore } from "@/firebase";
+import { useFirebase } from "@/firebase";
 import { doc, setDoc } from "firebase/firestore";
 
 const moodColors = [
@@ -59,9 +59,12 @@ export default function Home() {
   useEffect(() => {
     if (firestore && user) {
         const colorDocRef = doc(firestore, "esp32", "mood_color");
-        setDoc(colorDocRef, { hex: selectedColor.color });
+        // Use a non-blocking setDoc call
+        setDoc(colorDocRef, { hex: selectedColor.color }).catch(error => {
+          console.error("Failed to set initial color:", error);
+        });
     }
-  }, [user, firestore, selectedColor]);
+  }, [user, firestore]);
 
   useEffect(() => {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -140,6 +143,7 @@ export default function Home() {
       truthfulness: "Processing..."
     };
     
+    // Data for local storage to pass to the game page
     const localMoodData = {
         text: moodText,
         student_id: user.name,
@@ -150,9 +154,6 @@ export default function Home() {
     try {
       const docRef = doc(firestore, "moods", submissionId);
       await setDoc(docRef, fullMoodData);
-      
-      const colorDocRef = doc(firestore, "esp32", "mood_color");
-      await setDoc(colorDocRef, { hex: selectedColor.color });
       
       localStorage.setItem("latestMood", JSON.stringify(localMoodData));
 
@@ -188,7 +189,11 @@ export default function Home() {
     if (newColor.color !== selectedColor.color) {
       setSelectedColor(newColor);
       const colorDocRef = doc(firestore, "esp32", "mood_color");
-      await setDoc(colorDocRef, { hex: newColor.color });
+      // This is a non-blocking call. We don't wait for it to complete.
+      setDoc(colorDocRef, { hex: newColor.color }).catch(error => {
+        console.error("Firestore write failed:", error);
+        // Optionally show a silent error indicator in the UI
+      });
     }
   };
   
