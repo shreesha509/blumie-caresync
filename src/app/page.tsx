@@ -70,8 +70,8 @@ export default function Home() {
       };
       // Set the default state for the dashboard
       set(ref(database, 'blumie'), initialData);
-      // Set the initial color for the ESP32
-      set(ref(database, 'blumie/mood_color'), selectedColor.color);
+      // Set the initial color for the ESP32 as an RGB object
+      set(ref(database, 'blumie/mood_color'), selectedColor.rgb);
     }
   }, [user]); // It runs when the user data is available
 
@@ -162,8 +162,8 @@ export default function Home() {
       // This sends the complete object to `/blumie` for the dashboard
       await set(ref(database, 'blumie'), fullMoodData);
       
-      // This sends ONLY the color string to `/blumie/mood_color` for the ESP32
-      await set(ref(database, 'blumie/mood_color'), selectedColor.color);
+      // This sends ONLY the RGB object to `/blumie/mood_color` for the ESP32
+      await set(ref(database, 'blumie/mood_color'), selectedColor.rgb);
       
       localStorage.setItem("latestMood", JSON.stringify(localMoodData));
 
@@ -199,7 +199,7 @@ export default function Home() {
     setSelectedColor(newColor);
     
     // Live update the color for the ESP32 as it's being selected
-    set(ref(database, 'blumie/mood_color'), newColor.color);
+    set(ref(database, 'blumie/mood_color'), newColor.rgb);
   };
   
   const conicGradient = `conic-gradient(${moodColors
