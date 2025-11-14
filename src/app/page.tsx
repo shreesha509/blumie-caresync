@@ -45,10 +45,13 @@ export default function Home() {
   const { user } = useAppAuth();
   const router = useRouter();
   const { toast } = useToast();
-  const { firestore } = useFirebase();
+  // Destructure firestore and loading states from useFirebase
+  const { firestore, areServicesAvailable, isUserLoading } = useFirebase();
 
   const [isRecording, setIsRecording] = useState(false);
   const speechRecognitionRef = useRef<any>(null);
+
+  const isLoading = !areServicesAvailable || isUserLoading;
 
   useEffect(() => {
     // Debug log to check the firestore instance on component mount
@@ -61,15 +64,15 @@ export default function Home() {
     }
   }, [user, router]);
   
+  // This effect ensures an initial color is set in Firestore when the user loads the page and services are ready.
   useEffect(() => {
-    // This effect ensures an initial color is set in Firestore when the user loads the page.
-    if (firestore && user) {
+    if (firestore && user && areServicesAvailable) {
         const colorDocRef = doc(firestore, "esp32", "mood_color");
         setDoc(colorDocRef, { hex: selectedColor.color }).catch(error => {
           console.error("Failed to set initial color:", error);
         });
     }
-  }, [user, firestore]); 
+  }, [user, firestore, areServicesAvailable, selectedColor.color]); 
 
   useEffect(() => {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -181,7 +184,8 @@ export default function Home() {
   };
 
   const handleColorChange = async (e: MouseEvent<HTMLDivElement>) => {
-    console.log('handleColorChange triggered.'); // Log function entry
+    // Add console logs for detailed debugging as requested
+    console.log('handleColorChange triggered.'); 
     if (!colorWheelRef.current || !firestore) {
       console.log('handleColorChange returned early. Firestore available:', !!firestore);
       return;
@@ -219,7 +223,8 @@ export default function Home() {
     })
     .join(", ")})`;
 
-  if (!user || user.role !== 'student') {
+  // Render a loading state until Firebase is ready
+  if (isLoading || !user || user.role !== 'student') {
     return <div className="flex min-h-[calc(100dvh-3.5rem)] w-full flex-col items-center justify-center"><Loader2 className="animate-spin" /></div>;
   }
 
@@ -251,6 +256,7 @@ export default function Home() {
               onChange={(e) => setMoodText(e.target.value)}
               rows={3}
               className="bg-background/80 pr-12"
+              disabled={isLoading}
             />
              <Button
                 variant="ghost"
@@ -258,6 +264,7 @@ export default function Home() {
                 className={cn("absolute right-2 top-1/2 -translate-y-1/2", isRecording && "text-red-500 hover:text-red-600")}
                 onClick={toggleRecording}
                 aria-label="Toggle recording"
+                disabled={isLoading}
             >
                 {isRecording ? <MicOff /> : <Mic />}
             </Button>
@@ -266,13 +273,16 @@ export default function Home() {
             <label className="text-sm font-medium text-card-foreground">Choose a color</label>
             <div 
               ref={colorWheelRef}
-              className="relative h-40 w-40 rounded-full cursor-pointer border-4"
+              className={cn(
+                "relative h-40 w-40 rounded-full border-4",
+                isLoading ? "cursor-not-allowed opacity-50" : "cursor-pointer"
+              )}
               style={{ 
                 backgroundImage: conicGradient,
                 borderColor: selectedColor.color
               }}
-              onMouseMove={handleColorChange}
-              onClick={handleColorChange}
+              onMouseMove={!isLoading ? handleColorChange : undefined}
+              onClick={!isLoading ? handleColorChange : undefined}
             >
                <div 
                  className="absolute inset-0 rounded-full transition-all duration-200"
@@ -284,7 +294,8 @@ export default function Home() {
           </div>
         </CardContent>
         <CardFooter>
-          <Button onClick={handleSubmit} className="w-full" variant="default">
+          <Button onClick={handleSubmit} className="w-full" variant="default" disabled={isLoading}>
+            {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             Submit & Continue
           </Button>
         </CardFooter>
@@ -292,3 +303,5 @@ export default function Home() {
     </div>
   );
 }
+
+    
