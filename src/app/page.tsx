@@ -18,7 +18,7 @@ import { useAuth } from "@/context/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Mic, MicOff } from "lucide-react";
 import { database } from "@/lib/firebase";
-import { ref, set } from "firebase/database";
+import { ref, set, update } from "firebase/database";
 
 const moodColors = [
   { name: "Red", color: "#FF0000", rgb: { r: 255, g: 0, b: 0 } },
@@ -58,7 +58,7 @@ export default function Home() {
   // This useEffect runs once on page load to set a default color in Firebase
   useEffect(() => {
     if (user && user.name) {
-       const initialData = {
+       const initialFullData = {
           student_id: user.name,
           mood_name: "Awaiting submission...",
           mood_color: selectedColor.color,
@@ -68,12 +68,18 @@ export default function Home() {
           timestamp: new Date().toISOString(),
           truthfulness: "Processing..."
       };
+      
+      // Format as CSV string for ESP32
+      const esp32ColorData = `${selectedColor.rgb.r},${selectedColor.rgb.g},${selectedColor.rgb.b}`;
+
       // Set the default state for the dashboard
-      set(ref(database, 'blumie'), initialData);
-      // Set the initial color for the ESP32 as an RGB object
-      set(ref(database, 'blumie/mood_color'), selectedColor.rgb);
+      const updates: { [key: string]: any } = {};
+      updates['/blumie'] = initialFullData;
+      updates['/blumie/mood_color'] = esp32ColorData;
+      
+      update(ref(database), updates);
     }
-  }, [user]); // It runs when the user data is available
+  }, [user, selectedColor]);
 
   useEffect(() => {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -157,13 +163,17 @@ export default function Home() {
         mood_color: selectedColor.color,
         timestamp: timestamp,
     };
+
+    // Data for ESP32 in simple CSV string format
+    const esp32ColorData = `${selectedColor.rgb.r},${selectedColor.rgb.g},${selectedColor.rgb.b}`;
     
     try {
-      // This sends the complete object to `/blumie` for the dashboard
-      await set(ref(database, 'blumie'), fullMoodData);
+      // Use a multi-path update to write both sets of data atomically
+      const updates: { [key: string]: any } = {};
+      updates['/blumie'] = fullMoodData;
+      updates['/blumie/mood_color'] = esp32ColorData;
       
-      // This sends ONLY the RGB object to `/blumie/mood_color` for the ESP32
-      await set(ref(database, 'blumie/mood_color'), selectedColor.rgb);
+      await update(ref(database), updates);
       
       localStorage.setItem("latestMood", JSON.stringify(localMoodData));
 
@@ -196,10 +206,12 @@ export default function Home() {
     const colorIndex = Math.floor(angle / segmentAngle);
     const newColor = moodColors[colorIndex];
     
-    setSelectedColor(newColor);
-    
-    // Live update the color for the ESP32 as it's being selected
-    set(ref(database, 'blumie/mood_color'), newColor.rgb);
+    if (newColor.color !== selectedColor.color) {
+      setSelectedColor(newColor);
+      // Live update the color for the ESP32 as it's being selected
+      const esp32ColorData = `${newColor.rgb.r},${newColor.rgb.g},${newColor.rgb.b}`;
+      set(ref(database, 'blumie/mood_color'), esp32ColorData);
+    }
   };
   
   const conicGradient = `conic-gradient(${moodColors
