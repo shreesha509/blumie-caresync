@@ -24,15 +24,15 @@ export default function RootLayout({
         <link href="https://fonts.googleapis.com/css2?family=PT+Sans:wght@400;700&display=swap" rel="stylesheet" />
       </head>
       <body className={cn("min-h-screen bg-background font-body antialiased")}>
-        <AuthProvider>
-          <FirebaseClientProvider>
+        <FirebaseClientProvider>
+          <AuthProvider>
             <div className="relative flex min-h-dvh flex-col">
               <Header />
               <main className="flex-1">{children}</main>
             </div>
             <Toaster />
-          </FirebaseClientProvider>
-        </AuthProvider>
+          </AuthProvider>
+        </FirebaseClientProvider>
       </body>
     </html>
   );

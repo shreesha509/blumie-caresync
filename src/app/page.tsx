@@ -132,6 +132,13 @@ export default function Home() {
 
     setIsSubmitting(true);
     
+    console.log("Submitting Mood:");
+    console.log("Firebase User:", user);
+    console.log("Firestore Instance:", firestore);
+    console.log("Database Instance:", database);
+    console.log("Is User Loading:", isUserLoading);
+    console.log("Are Services Available:", areServicesAvailable);
+
     if (!user || !firestore || !database) {
       toast({ title: "Please wait, services are initializing or you are not logged in.", variant: "destructive" });
       setIsSubmitting(false);
@@ -141,7 +148,6 @@ export default function Home() {
     const studentName = appUser?.name || 'Unknown Student';
     const timestamp = new Date();
     
-    // Use the Firebase UID for the document ID to ensure uniqueness per user session
     const submissionId = `${studentName.replace(/\s+/g, '_')}_${timestamp.getTime()}`;
 
     const moodData = {
@@ -153,23 +159,19 @@ export default function Home() {
         firebase_uid: user.uid, // Store the firebase UID for future reference
     };
 
-    // Store a simplified version in localStorage for the game and chat pages
     const localMoodData = {
         ...moodData,
         text: moodText,
     };
     
     try {
-      // 1. Write the full mood data to Firestore for analysis and the warden dashboard
       const moodDocRef = doc(firestore, 'moods', submissionId);
       await setDoc(moodDocRef, moodData);
       
-      // 2. Write the color to Realtime Database for the ESP32
       const dbRef = ref(database, 'esp32/mood_color');
       const colorData = { hex: selectedColor.color, ...selectedColor.rgb };
       await set(dbRef, colorData);
       
-      // 3. Save to localStorage and proceed
       localStorage.setItem("latestMood", JSON.stringify(localMoodData));
 
       toast({
@@ -187,7 +189,7 @@ export default function Home() {
   };
 
   const handleColorChange = (e: MouseEvent<HTMLDivElement>) => {
-     if (!colorWheelRef.current || isSubmitting || isUserLoading || !areServicesAvailable) {
+     if (!colorWheelRef.current || isSubmitting) {
         return;
     }
 
@@ -272,7 +274,7 @@ export default function Home() {
               ref={colorWheelRef}
               className={cn(
                 "relative h-40 w-40 rounded-full border-4 cursor-pointer",
-                (isSubmitting || isUserLoading || !areServicesAvailable) && "cursor-not-allowed opacity-50"
+                (isSubmitting) && "cursor-not-allowed opacity-50"
               )}
               style={{ 
                 backgroundImage: conicGradient,
@@ -291,9 +293,9 @@ export default function Home() {
           </div>
         </CardContent>
         <CardFooter>
-          <Button onClick={handleSubmit} className="w-full" variant="default" disabled={isSubmitting || !moodText || isUserLoading || !areServicesAvailable}>
+          <Button onClick={handleSubmit} className="w-full" variant="default" disabled={isSubmitting || !moodText || isUserLoading || !user}>
             {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            {(isUserLoading || !areServicesAvailable) ? "Initializing..." : (isSubmitting ? "Submitting..." : "Submit & Continue")}
+            {(isUserLoading || !user) ? "Initializing..." : (isSubmitting ? "Submitting..." : "Submit & Continue")}
           </Button>
         </CardFooter>
       </Card>

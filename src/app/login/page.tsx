@@ -46,9 +46,12 @@ export default function LoginPage() {
     if (student && student.password === studentPassword) {
       setIsLoggingIn(true);
       try {
+        if (!auth) {
+          throw new Error("Auth service is not available.");
+        }
         // Sign into Firebase anonymously to get a UID
         await signInAnonymously(auth);
-        // Then log into the app's context
+        // Then log into the app's context, which triggers navigation
         login("student", { name: student.name });
       } catch (error) {
         console.error("Firebase anonymous login failed:", error);
@@ -85,8 +88,8 @@ export default function LoginPage() {
        <Image
           src="https://picsum.photos/seed/loginbg/1200/800"
           alt="BNMIT Logo Background"
-          layout="fill"
-          objectFit="cover"
+          fill
+          style={{objectFit: 'cover'}}
           className="z-0"
           data-ai-hint="logo background"
         />
@@ -153,8 +156,8 @@ export default function LoginPage() {
                 }}
                 disabled={isLoggingIn}
                 >Cancel</AlertDialogCancel>
-                <AlertDialogAction onClick={handleStudentLogin} disabled={isLoggingIn}>
-                  {isLoggingIn && <Loader2 className="animate-spin" />}
+                <AlertDialogAction onClick={handleStudentLogin} disabled={isLoggingIn || !studentName || !studentPassword}>
+                  {isLoggingIn && <Loader2 className="mr-2 animate-spin" />}
                   {isLoggingIn ? "Logging in..." : "Login"}
                 </AlertDialogAction>
               </AlertDialogFooter>

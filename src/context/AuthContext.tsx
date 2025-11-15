@@ -4,8 +4,6 @@
 import { createContext, useContext, useState, ReactNode, useEffect } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { useFirebase } from "@/firebase";
-import { signInAnonymously } from "firebase/auth";
-import { studentData } from "@/lib/student-data";
 
 type Role = "student" | "warden";
 interface User {
@@ -25,8 +23,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const router = useRouter();
   const pathname = usePathname();
-  // We can't use useFirebase here directly because this provider wraps the FirebaseProvider.
-  // We will handle the auth logic manually.
   
   useEffect(() => {
     try {
@@ -43,7 +39,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         router.replace("/login");
       }
     }
-  }, []);
+  }, [pathname, router]);
 
   useEffect(() => {
      if (user) {
@@ -64,11 +60,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const logout = () => {
     localStorage.removeItem("user");
     setUser(null);
-     // Also sign out from Firebase if needed
-    const { auth } = useFirebase();
-    if (auth.currentUser) {
-        auth.signOut();
-    }
+    // Let the useFirebase hook handle the signout via its onAuthStateChanged listener
   };
 
   return (
