@@ -19,7 +19,6 @@ import { useToast } from "@/hooks/use-toast";
 import { Loader2, Mic, MicOff } from "lucide-react";
 import { useFirebase } from "@/firebase";
 import { doc, setDoc } from "firebase/firestore";
-import { ref, set } from "firebase/database";
 
 const moodColors = [
   { name: "Serene", color: "#64B5F6", rgb: { r: 100, g: 181, b: 246 } },  // Light Blue
@@ -47,7 +46,7 @@ export default function Home() {
   const { user } = useAppAuth();
   const router = useRouter();
   const { toast } = useToast();
-  const { firestore, database, isUserLoading, areServicesAvailable } = useFirebase();
+  const { firestore, isUserLoading, areServicesAvailable } = useFirebase();
 
   const [isRecording, setIsRecording] = useState(false);
   const speechRecognitionRef = useRef<any>(null);
@@ -59,14 +58,14 @@ export default function Home() {
   }, [user, router]);
   
   useEffect(() => {
-    if (areServicesAvailable && user && database) {
+    if (areServicesAvailable && user && firestore) {
         const colorData = { hex: selectedColor.color, ...selectedColor.rgb };
-        const dbRef = ref(database, 'esp32/mood_color');
-        set(dbRef, colorData).catch(error => {
-          console.error("Failed to set initial color in RTDB:", error);
+        const docRef = doc(firestore, 'esp32', 'mood_color');
+        setDoc(docRef, colorData, { merge: true }).catch(error => {
+          console.error("Failed to set initial color in Firestore:", error);
         });
     }
-  }, [areServicesAvailable, user, selectedColor, database]);
+  }, [areServicesAvailable, user, selectedColor, firestore]);
 
   useEffect(() => {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -175,8 +174,8 @@ export default function Home() {
   };
 
   const handleColorChange = (e: MouseEvent<HTMLDivElement>) => {
-    if (!colorWheelRef.current || !database) {
-        console.log('handleColorChange returned early. Database available:', !!database);
+    if (!colorWheelRef.current || !firestore) {
+        console.log('handleColorChange returned early. Firestore available:', !!firestore);
         return;
     }
 
@@ -192,12 +191,12 @@ export default function Home() {
     if (newColor.color !== selectedColor.color) {
       setSelectedColor(newColor);
       
-      const dbRef = ref(database, 'esp32/mood_color');
+      const docRef = doc(firestore, 'esp32', 'mood_color');
       const colorData = { hex: newColor.color, ...newColor.rgb };
-      set(dbRef, colorData).catch(error => {
-        console.error("RTDB write for ESP32 failed:", error);
+      setDoc(docRef, colorData, { merge: true }).catch(error => {
+        console.error("Firestore write for ESP32 failed:", error);
         toast({
-            title: "Realtime Database Error",
+            title: "Firestore Error",
             description: `Could not update color. Reason: ${error.message}`,
             variant: "destructive"
         });
@@ -291,5 +290,3 @@ export default function Home() {
     </div>
   );
 }
-
-    
