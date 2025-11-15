@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useRef, MouseEvent, useEffect } from "react";
@@ -128,7 +129,7 @@ export default function Home() {
        toast({ title: "Please describe your mood", variant: "destructive" });
        return;
     }
-     if (!user || !firestore) {
+     if (!user || !firestore || !database) {
       toast({ title: "Please wait, services are initializing or you are not logged in.", variant: "destructive" });
       return;
     }
@@ -161,11 +162,9 @@ export default function Home() {
       await setDoc(moodDocRef, moodData);
       
       // 2. Write the color to Realtime Database for the ESP32
-      if (database) {
-        const dbRef = ref(database, 'esp32/mood_color');
-        const colorData = { hex: selectedColor.color, ...selectedColor.rgb };
-        await set(dbRef, colorData);
-      }
+      const dbRef = ref(database, 'esp32/mood_color');
+      const colorData = { hex: selectedColor.color, ...selectedColor.rgb };
+      await set(dbRef, colorData);
       
       // 3. Save to localStorage and proceed
       localStorage.setItem("latestMood", JSON.stringify(localMoodData));
@@ -185,11 +184,9 @@ export default function Home() {
   };
 
   const handleColorChange = (e: MouseEvent<HTMLDivElement>) => {
-     if (!colorWheelRef.current) {
+     if (!colorWheelRef.current || isSubmitting) {
         return;
     }
-    // Do not allow color change if submitting
-    if (isSubmitting || !database) return;
 
     const rect = colorWheelRef.current.getBoundingClientRect();
     const x = e.clientX - rect.left - rect.width / 2;
@@ -203,12 +200,14 @@ export default function Home() {
     if (newColor.color !== selectedColor.color) {
       setSelectedColor(newColor);
       
-      const dbRef = ref(database, 'esp32/mood_color');
-      const colorData = { hex: newColor.color, ...newColor.rgb };
-      set(dbRef, colorData).catch(error => {
-        // This is a non-critical error, so we just log it.
-        console.error("RTDB write for ESP32 failed:", error);
-      });
+      if (database) {
+        const dbRef = ref(database, 'esp32/mood_color');
+        const colorData = { hex: newColor.color, ...newColor.rgb };
+        set(dbRef, colorData).catch(error => {
+          // This is a non-critical error, so we just log it.
+          console.error("RTDB write for ESP32 failed:", error);
+        });
+      }
     }
   };
   
@@ -270,7 +269,7 @@ export default function Home() {
               ref={colorWheelRef}
               className={cn(
                 "relative h-40 w-40 rounded-full border-4 cursor-pointer",
-                isSubmitting && "cursor-not-allowed opacity-50"
+                (isSubmitting) && "cursor-not-allowed opacity-50"
               )}
               style={{ 
                 backgroundImage: conicGradient,
@@ -289,7 +288,7 @@ export default function Home() {
           </div>
         </CardContent>
         <CardFooter>
-          <Button onClick={handleSubmit} className="w-full" variant="default" disabled={isSubmitting || isUserLoading || !areServicesAvailable || !moodText}>
+          <Button onClick={handleSubmit} className="w-full" variant="default" disabled={isSubmitting || !moodText}>
             {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             {isSubmitting ? "Submitting..." : "Submit & Continue"}
           </Button>
@@ -298,3 +297,5 @@ export default function Home() {
     </div>
   );
 }
+
+    
