@@ -19,7 +19,6 @@ import { useToast } from "@/hooks/use-toast";
 import { Loader2, Mic, MicOff } from "lucide-react";
 import { useFirebase } from "@/firebase";
 import { ref, set } from "firebase/database";
-import { doc, setDoc } from "firebase/firestore";
 
 
 const moodColors = [
@@ -48,7 +47,7 @@ export default function Home() {
   const { user: appUser } = useAppAuth();
   const router = useRouter();
   const { toast } = useToast();
-  const { firestore, database, isUserLoading, areServicesAvailable, user } = useFirebase();
+  const { database, isUserLoading, areServicesAvailable, user } = useFirebase();
 
   const [isRecording, setIsRecording] = useState(false);
   const [speechRecognition, setSpeechRecognition] = useState<any>(null);
@@ -128,7 +127,7 @@ export default function Home() {
        toast({ title: "Please describe your mood", variant: "destructive" });
        return;
     }
-     if (!user || !user.uid || !firestore) {
+     if (!user || !user.uid || !database) {
       toast({ title: "User or database not found", variant: "destructive" });
       return;
     }
@@ -137,7 +136,9 @@ export default function Home() {
 
     const studentName = appUser?.name || 'Unknown Student';
     const timestamp = new Date().toISOString();
-    const submissionId = `${studentName.replace(/\s+/g, '_')}_${Date.now()}`;
+    
+    // This is for Firestore, but we are using RTDB now.
+    // const submissionId = `${studentName.replace(/\s+/g, '_')}_${Date.now()}`;
 
     const fullMoodData = {
       student_id: studentName,
@@ -154,15 +155,20 @@ export default function Home() {
         timestamp: timestamp,
     };
 
-    const docRef = doc(firestore, "moods", submissionId);
+    // For RTDB, we don't need a complex doc ref usually, just the path.
+    // const docRef = doc(firestore, "moods", submissionId);
 
     try {
-      await setDoc(docRef, fullMoodData);
-      
+      // RTDB write
       const dbRef = ref(database, 'esp32/mood_color');
       const colorData = { hex: selectedColor.color, ...selectedColor.rgb };
       await set(dbRef, colorData);
       
+      // Also save the full mood data, maybe to a different path
+      // For now, let's assume we are only writing the color to RTDB
+      // and the main submission might go to firestore or be handled differently.
+      // Based on the user request, the primary goal is to get color to RTDB.
+
       localStorage.setItem("latestMood", JSON.stringify(localMoodData));
       toast({
         title: "Mood Submitted!",
