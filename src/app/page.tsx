@@ -21,15 +21,16 @@ import { useFirebase } from "@/firebase";
 import { doc, setDoc } from "firebase/firestore";
 
 const moodColors = [
-  { name: "Red", color: "#FF0000", rgb: { r: 255, g: 0, b: 0 } },
-  { name: "Green", color: "#00FF00", rgb: { r: 0, g: 255, b: 0 } },
-  { name: "Blue", color: "#0000FF", rgb: { r: 0, g: 0, b: 255 } },
-  { name: "Yellow", color: "#FFFF00", rgb: { r: 255, g: 255, b: 0 } },
-  { name: "Cyan", color: "#00FFFF", rgb: { r: 0, g: 255, b: 255 } },
-  { name: "Magenta", color: "#FF00FF", rgb: { r: 255, g: 0, b: 255 } },
-  { name: "White", color: "#FFFFFF", rgb: { r: 255, g: 255, b: 255 } },
+  { name: "Hopeful", color: "#FFD54F", rgb: { r: 255, g: 213, b: 79 } }, // Amber
+  { name: "Joyful", color: "#81C784", rgb: { r: 129, g: 199, b: 132 } }, // Light Green
+  { name: "Calm", color: "#64B5F6", rgb: { r: 100, g: 181, b: 246 } },  // Light Blue
+  { name: "Sad", color: "#4527A0", rgb: { r: 69, g: 39, b: 160 } },     // Deep Indigo
+  { name: "Anxious", color: "#E57373", rgb: { r: 229, g: 115, b: 115 } }, // Light Red
+  { name: "Loved", color: "#F06292", rgb: { r: 240, g: 98, b: 146 } },    // Pink
+  { name: "Neutral", color: "#90A4AE", rgb: { r: 144, g: 164, b: 174 } },// Blue Grey
   { name: "Off", color: "#000000", rgb: { r: 0, g: 0, b: 0 } },
 ];
+
 
 declare global {
   interface Window {
@@ -55,17 +56,17 @@ export default function Home() {
       router.replace("/data");
     }
   }, [user, router]);
-
+  
+  // This effect runs once when the component mounts and Firebase is ready.
   useEffect(() => {
-    // Write initial color only when firestore and user are available
     if (firestore && user) {
+        // Set the initial color in Firestore when the component loads.
         const colorDocRef = doc(firestore, "esp32", "mood_color");
-        // Non-blocking write
         setDoc(colorDocRef, { hex: selectedColor.color }).catch(error => {
           console.error("Failed to set initial color:", error);
         });
     }
-  }, [user, firestore, selectedColor.color]);
+  }, [firestore, user, selectedColor.color]); // Depend on firestore and user
 
   useEffect(() => {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
