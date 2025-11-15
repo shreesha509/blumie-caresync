@@ -129,12 +129,21 @@ export default function Home() {
        toast({ title: "Please describe your mood", variant: "destructive" });
        return;
     }
-     if (!user || !firestore || !database) {
-      toast({ title: "Please wait, services are initializing or you are not logged in.", variant: "destructive" });
-      return;
-    }
 
     setIsSubmitting(true);
+    
+    console.log("Submitting Mood:");
+    console.log("Firebase User:", user);
+    console.log("Firestore Instance:", firestore);
+    console.log("Database Instance:", database);
+    console.log("Is User Loading:", isUserLoading);
+    console.log("Are Services Available:", areServicesAvailable);
+
+    if (!user || !firestore || !database) {
+      toast({ title: "Please wait, services are initializing or you are not logged in.", variant: "destructive" });
+      setIsSubmitting(false);
+      return;
+    }
 
     const studentName = appUser?.name || 'Unknown Student';
     const timestamp = new Date();
@@ -297,5 +306,3 @@ export default function Home() {
     </div>
   );
 }
-
-    
