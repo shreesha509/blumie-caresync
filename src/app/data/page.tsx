@@ -12,11 +12,11 @@ import {
 } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
-import { User as UserIcon, ShieldAlert, HeartPulse, Activity, Wind, Mic } from "lucide-react";
+import { User as UserIcon, ShieldAlert, HeartPulse, Thermometer, Droplets } from "lucide-react";
 import { useAuth as useAppAuth } from "@/context/AuthContext";
 import { formatDistanceToNow } from "date-fns";
 import { useCollection, useMemoFirebase, useFirebase } from "@/firebase";
-import { collection, query, orderBy } from "firebase/firestore";
+import { collection, query, orderBy, limit } from "firebase/firestore";
 import { MoodDataTable } from "@/components/MoodDataTable";
 import { columns } from "@/components/columns";
 import { useToast } from "@/hooks/use-toast";
@@ -34,6 +34,15 @@ export interface MoodData {
   alertCaretaker?: boolean;
 }
 
+export interface BiometricData {
+  id: string;
+  student_id: string;
+  heartbeat: number;
+  temperature: number;
+  spo2: number;
+  timestamp: string;
+}
+
 export default function DataPage() {
   const { user } = useAppAuth();
   const router = useRouter();
@@ -41,6 +50,7 @@ export default function DataPage() {
   const { firestore, isUserLoading } = useFirebase();
 
   const [latestMood, setLatestMood] = useState<MoodData | null>(null);
+  const [latestBiometrics, setLatestBiometrics] = useState<BiometricData | null>(null);
 
   useEffect(() => {
     if (!isUserLoading && (!user || user.role !== "warden")) {
@@ -55,6 +65,15 @@ export default function DataPage() {
   }, [firestore]);
 
   const { data: moodHistory = [], isLoading: isMoodHistoryLoading } = useCollection<MoodData>(moodHistoryQuery);
+
+   const biometricsQuery = useMemoFirebase(() => {
+    if (!firestore) return null;
+    // Query to get the latest document from the 'biometrics' collection
+    return query(collection(firestore, "biometrics"), orderBy("timestamp", "desc"), limit(1));
+  }, [firestore]);
+
+  const { data: biometricsData = [], isLoading: isBiometricsLoading } = useCollection<BiometricData>(biometricsQuery);
+
 
   useEffect(() => {
     if (moodHistory && moodHistory.length > 0) {
@@ -78,6 +97,12 @@ export default function DataPage() {
       setLatestMood(newLatestMood);
     }
   }, [moodHistory, toast, latestMood]);
+
+  useEffect(() => {
+    if (biometricsData && biometricsData.length > 0) {
+      setLatestBiometrics(biometricsData[0]);
+    }
+  }, [biometricsData]);
 
 
   if (isUserLoading || !user || user.role !== "warden") {
@@ -113,12 +138,12 @@ export default function DataPage() {
           Wellness Dashboard
         </h1>
         <p className="mt-2 text-lg text-muted-foreground">
-          A real-time console of student mood submissions from Firestore.
+          A real-time console of student submissions from Firestore.
         </p>
       </div>
       
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-10">
-        <div className="lg:col-span-3 space-y-6">
+        <div className="lg:col-span-2 space-y-6">
             {/* Latest Mood */}
             <Card>
               <CardHeader>
@@ -168,13 +193,14 @@ export default function DataPage() {
                         <Loader2 className="animate-spin" />
                       ) : (
                         <p className="text-muted-foreground">
-                          Waiting for student submission...
+                          Waiting for student mood submission...
                         </p>
                       )}
                   </div>
                 )}
               </CardContent>
             </Card>
+
             {/* Mood History Table */}
             <Card>
                 <CardHeader>
@@ -188,6 +214,56 @@ export default function DataPage() {
                 </CardContent>
             </Card>
         </div>
+
+        {/* Biometrics Card */}
+        <div className="space-y-6">
+            <Card>
+                <CardHeader>
+                    <CardTitle>Live Biometrics</CardTitle>
+                    <CardDescription>
+                        {latestBiometrics
+                            ? `Last reading: ${formatDistanceToNow(new Date(latestBiometrics.timestamp), { addSuffix: true })}`
+                            : "Waiting for sensor data..."}
+                    </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                    {isBiometricsLoading && !latestBiometrics && (
+                         <div className="flex items-center justify-center h-full py-10">
+                            <Loader2 className="animate-spin" />
+                         </div>
+                    )}
+                    {latestBiometrics ? (
+                        <>
+                            <div className="flex items-center gap-4">
+                                <UserIcon className="h-5 w-5 text-accent-foreground shrink-0" />
+                                <p className="font-bold text-lg">{latestBiometrics.student_id}</p>
+                            </div>
+                            <Separator />
+                            <div className="grid grid-cols-3 gap-4 text-center">
+                                <div>
+                                    <HeartPulse className="mx-auto h-8 w-8 text-red-500" />
+                                    <p className="mt-2 text-2xl font-bold">{latestBiometrics.heartbeat}</p>
+                                    <p className="text-xs text-muted-foreground">BPM</p>
+                                </div>
+                                <div>
+                                    <Thermometer className="mx-auto h-8 w-8 text-blue-500" />
+                                    <p className="mt-2 text-2xl font-bold">{latestBiometrics.temperature.toFixed(1)}</p>
+                                    <p className="text-xs text-muted-foreground">°C</p>
+                                </div>
+                                <div>
+                                    <Droplets className="mx-auto h-8 w-8 text-cyan-500" />
+                                    <p className="mt-2 text-2xl font-bold">{latestBiometrics.spo2}</p>
+                                    <p className="text-xs text-muted-foreground">% SpO2</p>
+                                </div>
+                            </div>
+                        </>
+                    ) : (
+                         !isBiometricsLoading && <p className="text-sm text-center text-muted-foreground py-10">No biometric data received from any device yet.</p>
+                    )}
+                </CardContent>
+            </Card>
+        </div>
+
       </div>
     </div>
   );
