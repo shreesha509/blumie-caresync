@@ -17,7 +17,8 @@ import { cn } from "@/lib/utils";
 import { useAuth as useAppAuth } from "@/context/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Mic, MicOff } from "lucide-react";
-import { useFirebase, errorEmitter, FirestorePermissionError } from "@/firebase";
+import { useFirebase } from "@/firebase";
+import { ref, set } from "firebase/database";
 import { doc, setDoc } from "firebase/firestore";
 
 const moodColors = [
@@ -43,10 +44,10 @@ export default function Home() {
   const [moodText, setMoodText] = useState("");
   const [selectedColor, setSelectedColor] = useState(moodColors[0]);
   const colorWheelRef = useRef<HTMLDivElement>(null);
-  const { user: appUser, logout } = useAppAuth();
+  const { user: appUser } = useAppAuth();
   const router = useRouter();
   const { toast } = useToast();
-  const { firestore, isUserLoading, areServicesAvailable, user } = useFirebase();
+  const { firestore, database, isUserLoading, areServicesAvailable, user } = useFirebase();
 
   const [isRecording, setIsRecording] = useState(false);
   const [speechRecognition, setSpeechRecognition] = useState<any>(null);
@@ -54,10 +55,12 @@ export default function Home() {
 
 
   useEffect(() => {
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (SpeechRecognition) {
-      const recognition = new SpeechRecognition();
-      setSpeechRecognition(recognition);
+    if (typeof window !== 'undefined') {
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (SpeechRecognition) {
+        const recognition = new SpeechRecognition();
+        setSpeechRecognition(recognition);
+      }
     }
   }, []);
 
@@ -157,19 +160,15 @@ export default function Home() {
       });
       router.push('/game');
     } catch (error) {
-      const contextualError = new FirestorePermissionError({
-        path: docRef.path,
-        operation: 'create',
-        requestResourceData: fullMoodData,
-      });
-      errorEmitter.emit('permission-error', contextualError);
+      console.error("Firestore submission error", error);
+      toast({ title: "Submission Error", description: "Could not save your mood. Please try again.", variant: "destructive" });
     } finally {
         setIsSubmitting(false);
     }
   };
 
   const handleColorChange = (e: MouseEvent<HTMLDivElement>) => {
-    if (!areServicesAvailable || !user) {
+    if (!areServicesAvailable || !user || !database) {
       toast({ title: "Please wait", description: "Services are initializing or you are not logged in." });
       return;
     }
@@ -189,15 +188,15 @@ export default function Home() {
     if (newColor.color !== selectedColor.color) {
       setSelectedColor(newColor);
       
-      const docRef = doc(firestore, 'esp32', 'mood_color');
+      const dbRef = ref(database, 'esp32/mood_color');
       const colorData = { hex: newColor.color, ...newColor.rgb };
-      setDoc(docRef, colorData, { merge: true }).catch(error => {
-        const contextualError = new FirestorePermissionError({
-          path: docRef.path,
-          operation: 'update',
-          requestResourceData: colorData,
+      set(dbRef, colorData).catch(error => {
+        console.error("RTDB write for ESP32 failed:", error);
+        toast({
+            title: "Realtime Database Error",
+            description: `Could not update color. Reason: ${error.message}`,
+            variant: "destructive"
         });
-        errorEmitter.emit('permission-error', contextualError);
       });
     }
   };
@@ -280,7 +279,7 @@ export default function Home() {
         </CardContent>
         <CardFooter>
           <Button onClick={handleSubmit} className="w-full" variant="default" disabled={isUserLoading || isSubmitting || !areServicesAvailable}>
-            {(isUserLoading || isSubmitting || !areServicesAvailable) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             {isSubmitting ? "Submitting..." : "Submit & Continue"}
           </Button>
         </CardFooter>
@@ -288,3 +287,5 @@ export default function Home() {
     </div>
   );
 }
+
+    

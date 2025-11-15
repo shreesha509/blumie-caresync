@@ -1,3 +1,4 @@
+
 'use client';
 
 import { firebaseConfig } from '@/firebase/config';
@@ -38,6 +39,7 @@ export function getSdks(firebaseApp: FirebaseApp) {
     firebaseApp,
     auth: getAuth(firebaseApp),
     firestore: getFirestore(firebaseApp),
+    database: getDatabase(firebaseApp),
   };
 }
 
@@ -49,3 +51,5 @@ export * from './non-blocking-updates';
 export * from './non-blocking-login';
 export * from './errors';
 export * from './error-emitter';
+
+    

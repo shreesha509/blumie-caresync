@@ -1,7 +1,13 @@
 
 {
   "rules": {
-    ".read": false,
-    ".write": false
+    "esp32": {
+      "mood_color": {
+        ".read": true,
+        ".write": "auth != null"
+      }
+    }
   }
 }
+
+    
