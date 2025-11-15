@@ -59,14 +59,14 @@ export default function Home() {
   }, [user, router]);
   
   useEffect(() => {
-    if (areServicesAvailable && user) {
+    if (areServicesAvailable && user && database) {
         const colorData = { hex: selectedColor.color, ...selectedColor.rgb };
         const dbRef = ref(database, 'esp32/mood_color');
         set(dbRef, colorData).catch(error => {
           console.error("Failed to set initial color in RTDB:", error);
         });
     }
-  }, [areServicesAvailable, user, selectedColor.color, selectedColor.rgb, database]);
+  }, [areServicesAvailable, user, selectedColor, database]);
 
   useEffect(() => {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
