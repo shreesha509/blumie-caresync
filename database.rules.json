@@ -1,3 +1,4 @@
+
 {
   "rules": {
     "esp32": {
@@ -5,6 +6,10 @@
         ".read": true,
         ".write": true
       }
-    }
+    },
+    ".read": false,
+    ".write": false
   }
 }
+
+    

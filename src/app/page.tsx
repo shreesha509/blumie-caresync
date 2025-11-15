@@ -196,6 +196,11 @@ export default function Home() {
       const colorData = { hex: newColor.color, ...newColor.rgb };
       set(dbRef, colorData).catch(error => {
         console.error("RTDB write for ESP32 failed:", error);
+        toast({
+            title: "Realtime Database Error",
+            description: `Could not update color. Reason: ${error.message}`,
+            variant: "destructive"
+        });
       });
     }
   };
@@ -286,3 +291,5 @@ export default function Home() {
     </div>
   );
 }
+
+    
