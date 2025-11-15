@@ -36,7 +36,7 @@ export function MoodDataTable<TData, TValue>({
   ])
 
   const table = useReactTable({
-    data,
+    data: data || [], // Ensure data is never null/undefined
     columns,
     getCoreRowModel: getCoreRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
