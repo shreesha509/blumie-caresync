@@ -17,7 +17,7 @@ import { cn } from "@/lib/utils";
 import { useAuth as useAppAuth } from "@/context/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Mic, MicOff } from "lucide-react";
-import { useFirebase } from "@/firebase";
+import { useFirebase, errorEmitter, FirestorePermissionError } from "@/firebase";
 import { doc, setDoc } from "firebase/firestore";
 
 const moodColors = [
@@ -62,7 +62,12 @@ export default function Home() {
         const colorData = { hex: selectedColor.color, ...selectedColor.rgb };
         const docRef = doc(firestore, 'esp32', 'mood_color');
         setDoc(docRef, colorData, { merge: true }).catch(error => {
-          console.error("Failed to set initial color in Firestore:", error);
+          const contextualError = new FirestorePermissionError({
+            path: docRef.path,
+            operation: 'update',
+            requestResourceData: colorData,
+          });
+          errorEmitter.emit('permission-error', contextualError);
         });
     }
   }, [areServicesAvailable, user, selectedColor, firestore]);
@@ -149,33 +154,28 @@ export default function Home() {
         timestamp: timestamp,
     };
 
-    try {
-      // This writes the full data for the warden dashboard
-      const docRef = doc(firestore, "moods", submissionId);
-      await setDoc(docRef, fullMoodData);
-      
-      localStorage.setItem("latestMood", JSON.stringify(localMoodData));
-
-      toast({
-        title: "Mood Submitted!",
-        description: "Now, let's play a quick game.",
-      });
-
-      router.push('/game');
-
-    } catch (error) {
-       console.error("Error writing to Firestore:", error);
-       toast({
-          title: "Submission Failed",
-          description: "Could not save mood to the database.",
-          variant: "destructive",
+    const docRef = doc(firestore, "moods", submissionId);
+    setDoc(docRef, fullMoodData)
+      .then(() => {
+        localStorage.setItem("latestMood", JSON.stringify(localMoodData));
+        toast({
+          title: "Mood Submitted!",
+          description: "Now, let's play a quick game.",
         });
-    }
+        router.push('/game');
+      })
+      .catch((error) => {
+        const contextualError = new FirestorePermissionError({
+          path: docRef.path,
+          operation: 'create',
+          requestResourceData: fullMoodData,
+        });
+        errorEmitter.emit('permission-error', contextualError);
+      });
   };
 
   const handleColorChange = (e: MouseEvent<HTMLDivElement>) => {
     if (!colorWheelRef.current || !firestore) {
-        console.log('handleColorChange returned early. Firestore available:', !!firestore);
         return;
     }
 
@@ -194,12 +194,12 @@ export default function Home() {
       const docRef = doc(firestore, 'esp32', 'mood_color');
       const colorData = { hex: newColor.color, ...newColor.rgb };
       setDoc(docRef, colorData, { merge: true }).catch(error => {
-        console.error("Firestore write for ESP32 failed:", error);
-        toast({
-            title: "Firestore Error",
-            description: `Could not update color. Reason: ${error.message}`,
-            variant: "destructive"
+        const contextualError = new FirestorePermissionError({
+          path: docRef.path,
+          operation: 'update',
+          requestResourceData: colorData,
         });
+        errorEmitter.emit('permission-error', contextualError);
       });
     }
   };
