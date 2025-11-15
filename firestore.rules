@@ -1,13 +1,15 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Allow read/write access to the esp32 mood color document
-    // for any authenticated user.
+    // Allow public read/write access ONLY to the esp32 mood color document.
+    // This is safe because this document contains no sensitive user data.
     match /esp32/mood_color {
-      allow read, write: if request.auth != null;
+      allow read, write: if true;
     }
 
-    // Default deny all other documents
+    // Explicitly deny all other documents. This is a good security practice.
+    // All other collections and documents will require their own specific rules
+    // to be accessed.
     match /{document=**} {
       allow read, write: if false;
     }
