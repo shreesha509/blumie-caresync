@@ -17,7 +17,7 @@ export const columns: ColumnDef<MoodData>[] = [
           variant="ghost"
           onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
         >
-          Student ID
+          Student Name
           <ArrowUpDown className="ml-2 h-4 w-4" />
         </Button>
       )
