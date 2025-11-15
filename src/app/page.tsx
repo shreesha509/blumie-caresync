@@ -39,15 +39,6 @@ declare global {
   }
 }
 
-const SpeechRecognition =
-  (typeof window !== 'undefined' && window.SpeechRecognition) ||
-  (typeof window !== 'undefined' && window.webkitSpeechRecognition);
-let speechRecognition: any;
-if (SpeechRecognition) {
-  speechRecognition = new SpeechRecognition();
-}
-
-
 export default function Home() {
   const [moodText, setMoodText] = useState("");
   const [selectedColor, setSelectedColor] = useState(moodColors[0]);
@@ -58,7 +49,17 @@ export default function Home() {
   const { firestore, isUserLoading, areServicesAvailable, user } = useFirebase();
 
   const [isRecording, setIsRecording] = useState(false);
-  const speechRecognitionRef = useState(speechRecognition)[0];
+  const [speechRecognition, setSpeechRecognition] = useState<any>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+
+  useEffect(() => {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (SpeechRecognition) {
+      const recognition = new SpeechRecognition();
+      setSpeechRecognition(recognition);
+    }
+  }, []);
 
 
   useEffect(() => {
@@ -68,7 +69,7 @@ export default function Home() {
   }, [appUser, router]);
   
   const toggleRecording = () => {
-    if (!speechRecognitionRef) {
+    if (!speechRecognition) {
         toast({
           title: "Speech Recognition Not Supported",
           description: "Your browser doesn't support this feature.",
@@ -78,14 +79,14 @@ export default function Home() {
     }
 
     if (isRecording) {
-      speechRecognitionRef.stop();
+      speechRecognition.stop();
       setIsRecording(false);
     } else {
       setMoodText('');
-      speechRecognitionRef.start();
+      speechRecognition.start();
       setIsRecording(true);
 
-      speechRecognitionRef.onresult = (event: any) => {
+      speechRecognition.onresult = (event: any) => {
         let finalTranscript = '';
         for (let i = event.resultIndex; i < event.results.length; ++i) {
           if (event.results[i].isFinal) {
@@ -95,7 +96,7 @@ export default function Home() {
         setMoodText(prevText => prevText + finalTranscript);
       };
       
-       speechRecognitionRef.onerror = (event: any) => {
+       speechRecognition.onerror = (event: any) => {
         console.error("Speech recognition error", event.error);
         toast({
           title: "Speech Recognition Error",
@@ -105,7 +106,7 @@ export default function Home() {
         setIsRecording(false);
       };
 
-      speechRecognitionRef.onend = () => {
+      speechRecognition.onend = () => {
         setIsRecording(false);
       };
     }
@@ -113,7 +114,7 @@ export default function Home() {
 
   const handleSubmit = async () => {
     if (isRecording) {
-      speechRecognitionRef.stop();
+      speechRecognition.stop();
     }
     if (!moodText.trim()) {
        toast({ title: "Please describe your mood", variant: "destructive" });
@@ -124,11 +125,12 @@ export default function Home() {
       return;
     }
 
+    setIsSubmitting(true);
+
     const studentName = appUser?.name || 'Unknown Student';
     const timestamp = new Date().toISOString();
     const submissionId = `${studentName.replace(/\s+/g, '_')}_${Date.now()}`;
 
-    // Data for the Warden Dashboard (Firestore)
     const fullMoodData = {
       student_id: studentName,
       mood_name: moodText,
@@ -137,7 +139,6 @@ export default function Home() {
       truthfulness: "Processing..."
     };
     
-    // Data for local storage to pass to the game page
     const localMoodData = {
         text: moodText,
         student_id: studentName,
@@ -146,27 +147,28 @@ export default function Home() {
     };
 
     const docRef = doc(firestore, "moods", submissionId);
-    setDoc(docRef, fullMoodData)
-      .then(() => {
-        localStorage.setItem("latestMood", JSON.stringify(localMoodData));
-        toast({
-          title: "Mood Submitted!",
-          description: "Now, let's play a quick game.",
-        });
-        router.push('/game');
-      })
-      .catch((error) => {
-        const contextualError = new FirestorePermissionError({
-          path: docRef.path,
-          operation: 'create',
-          requestResourceData: fullMoodData,
-        });
-        errorEmitter.emit('permission-error', contextualError);
+
+    try {
+      await setDoc(docRef, fullMoodData);
+      localStorage.setItem("latestMood", JSON.stringify(localMoodData));
+      toast({
+        title: "Mood Submitted!",
+        description: "Now, let's play a quick game.",
       });
+      router.push('/game');
+    } catch (error) {
+      const contextualError = new FirestorePermissionError({
+        path: docRef.path,
+        operation: 'create',
+        requestResourceData: fullMoodData,
+      });
+      errorEmitter.emit('permission-error', contextualError);
+    } finally {
+        setIsSubmitting(false);
+    }
   };
 
   const handleColorChange = (e: MouseEvent<HTMLDivElement>) => {
-    // Stricter guard: ensure firestore and an authenticated user from useFirebase are present.
     if (!areServicesAvailable || !user) {
       toast({ title: "Please wait", description: "Services are initializing or you are not logged in." });
       return;
@@ -239,7 +241,7 @@ export default function Home() {
               onChange={(e) => setMoodText(e.target.value)}
               rows={3}
               className="bg-background/80 pr-12"
-              disabled={isUserLoading}
+              disabled={isSubmitting}
             />
              <Button
                 variant="ghost"
@@ -247,7 +249,7 @@ export default function Home() {
                 className={cn("absolute right-2 top-1/2 -translate-y-1/2", isRecording && "text-red-500 hover:text-red-600")}
                 onClick={toggleRecording}
                 aria-label="Toggle recording"
-                disabled={isUserLoading}
+                disabled={isSubmitting}
             >
                 {isRecording ? <MicOff /> : <Mic />}
             </Button>
@@ -258,7 +260,7 @@ export default function Home() {
               ref={colorWheelRef}
               className={cn(
                 "relative h-40 w-40 rounded-full border-4",
-                isUserLoading ? "cursor-not-allowed opacity-50" : "cursor-pointer"
+                (isUserLoading || isSubmitting) ? "cursor-not-allowed opacity-50" : "cursor-pointer"
               )}
               style={{ 
                 backgroundImage: conicGradient,
@@ -277,9 +279,9 @@ export default function Home() {
           </div>
         </CardContent>
         <CardFooter>
-          <Button onClick={handleSubmit} className="w-full" variant="default" disabled={isUserLoading || !areServicesAvailable}>
-            {(isUserLoading || !areServicesAvailable) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            Submit & Continue
+          <Button onClick={handleSubmit} className="w-full" variant="default" disabled={isUserLoading || isSubmitting || !areServicesAvailable}>
+            {(isUserLoading || isSubmitting || !areServicesAvailable) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            {isSubmitting ? "Submitting..." : "Submit & Continue"}
           </Button>
         </CardFooter>
       </Card>
