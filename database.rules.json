@@ -1,6 +1,10 @@
 {
   "rules": {
-    ".read": "true",
-    ".write": "true"
+    "esp32": {
+      "mood_color": {
+        ".read": true,
+        ".write": true
+      }
+    }
   }
 }
