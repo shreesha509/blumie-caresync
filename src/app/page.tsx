@@ -58,9 +58,12 @@ export default function Home() {
   }, [user, router]);
   
   useEffect(() => {
+    // This effect ensures the color is updated in Firestore ONLY when services
+    // are available AND the user is authenticated.
     if (areServicesAvailable && user && firestore) {
         const colorData = { hex: selectedColor.color, ...selectedColor.rgb };
         const docRef = doc(firestore, 'esp32', 'mood_color');
+        
         setDoc(docRef, colorData, { merge: true }).catch(error => {
           const contextualError = new FirestorePermissionError({
             path: docRef.path,
@@ -176,6 +179,12 @@ export default function Home() {
 
   const handleColorChange = (e: MouseEvent<HTMLDivElement>) => {
     if (!colorWheelRef.current || !firestore) {
+        return;
+    }
+
+    // Do not allow color change if user is not authenticated
+    if (!user) {
+        toast({ title: "Please wait", description: "Authenticating..." });
         return;
     }
 

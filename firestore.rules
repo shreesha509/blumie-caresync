@@ -1,17 +1,30 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Allow public read/write access ONLY to the esp32 mood color document.
-    // This is safe because this document contains no sensitive user data.
+    // Only allow authenticated users to update the ESP32 mood color.
+    // This is secure and prevents unauthenticated writes.
     match /esp32/mood_color {
-      allow read, write: if true;
+      allow read: if true;
+      allow write: if request.auth != null;
     }
 
-    // Explicitly deny all other documents. This is a good security practice.
-    // All other collections and documents will require their own specific rules
-    // to be accessed.
-    match /{document=**} {
-      allow read, write: if false;
+    // Rule for mood submissions. Only the logged-in user can create
+    // their own mood entries.
+    match /moods/{submissionId} {
+      allow create: if request.auth != null && request.resource.data.student_id == request.auth.uid;
+      allow read, update: if resource.data.student_id == request.auth.uid;
+    }
+
+    // Warden access to all mood data.
+    // This rule is illustrative. For production, you would use custom claims
+    // to verify the user is a warden.
+    match /moods/{moodId} {
+      allow read: if get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'warden';
+    }
+    
+    // Biometrics data can be read by the warden.
+    match /biometrics/{bioId} {
+       allow read: if get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'warden';
     }
   }
 }
