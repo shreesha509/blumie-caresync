@@ -48,7 +48,7 @@ export default function Home() {
   const { user: appUser } = useAppAuth();
   const router = useRouter();
   const { toast } = useToast();
-  const { database, firestore, isUserLoading, areServicesAvailable, user } = useFirebase();
+  const { database, firestore, isUserLoading, user } = useFirebase();
 
   const [isRecording, setIsRecording] = useState(false);
   const [speechRecognition, setSpeechRecognition] = useState<any>(null);
@@ -137,7 +137,7 @@ export default function Home() {
     console.log("Firestore Instance:", firestore);
     console.log("Database Instance:", database);
     console.log("Is User Loading:", isUserLoading);
-    console.log("Are Services Available:", areServicesAvailable);
+
 
     if (!user || !firestore || !database) {
       toast({ title: "Please wait, services are initializing or you are not logged in.", variant: "destructive" });
@@ -223,7 +223,7 @@ export default function Home() {
     })
     .join(", ")})`;
 
-  if (isUserLoading || !appUser || appUser.role !== 'student') {
+  if (isUserLoading || !appUser || (appUser && appUser.role !== 'student')) {
     return <div className="flex min-h-[calc(100dvh-3.5rem)] w-full flex-col items-center justify-center"><Loader2 className="animate-spin" /></div>;
   }
 

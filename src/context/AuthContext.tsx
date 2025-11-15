@@ -41,25 +41,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [pathname, router]);
 
-  useEffect(() => {
-     if (user) {
-      if (pathname === "/login") {
-        router.replace(user.role === 'student' ? '/' : '/data');
-      }
-    } else if (pathname !== "/login") {
-      router.replace("/login");
-    }
-  }, [user, pathname, router]);
 
   const login = (role: Role, credentials?: { name?: string; password?: string }) => {
     const userData: User = { role, name: credentials?.name };
     localStorage.setItem("user", JSON.stringify(userData));
     setUser(userData);
+    router.push(userData.role === 'student' ? '/' : '/data');
   };
 
   const logout = () => {
     localStorage.removeItem("user");
     setUser(null);
+    router.push('/login');
     // Let the useFirebase hook handle the signout via its onAuthStateChanged listener
   };
 
