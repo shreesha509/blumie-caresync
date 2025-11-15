@@ -188,8 +188,8 @@ export default function Home() {
      if (!colorWheelRef.current) {
         return;
     }
-    // Do not allow color change if services aren't ready or submitting
-    if (isUserLoading || !areServicesAvailable || !database || isSubmitting) return;
+    // Do not allow color change if submitting
+    if (isSubmitting || !database) return;
 
     const rect = colorWheelRef.current.getBoundingClientRect();
     const x = e.clientX - rect.left - rect.width / 2;
@@ -270,7 +270,7 @@ export default function Home() {
               ref={colorWheelRef}
               className={cn(
                 "relative h-40 w-40 rounded-full border-4 cursor-pointer",
-                (isUserLoading || !areServicesAvailable || isSubmitting) && "cursor-not-allowed opacity-50"
+                isSubmitting && "cursor-not-allowed opacity-50"
               )}
               style={{ 
                 backgroundImage: conicGradient,
