@@ -19,16 +19,17 @@ import { useToast } from "@/hooks/use-toast";
 import { Loader2, Mic, MicOff } from "lucide-react";
 import { useFirebase } from "@/firebase";
 import { doc, setDoc } from "firebase/firestore";
+import { ref, set } from "firebase/database";
 
 const moodColors = [
-  { name: "Hopeful", color: "#FFD54F", rgb: { r: 255, g: 213, b: 79 } }, // Amber
-  { name: "Joyful", color: "#81C784", rgb: { r: 129, g: 199, b: 132 } }, // Light Green
-  { name: "Calm", color: "#64B5F6", rgb: { r: 100, g: 181, b: 246 } },  // Light Blue
-  { name: "Sad", color: "#4527A0", rgb: { r: 69, g: 39, b: 160 } },     // Deep Indigo
+  { name: "Serene", color: "#64B5F6", rgb: { r: 100, g: 181, b: 246 } },  // Light Blue
+  { name: "Happy", color: "#81C784", rgb: { r: 129, g: 199, b: 132 } }, // Light Green
+  { name: "Creative", color: "#FFD54F", rgb: { r: 255, g: 213, b: 79 } }, // Amber
+  { name: "Passionate", color: "#F06292", rgb: { r: 240, g: 98, b: 146 } },    // Pink
   { name: "Anxious", color: "#E57373", rgb: { r: 229, g: 115, b: 115 } }, // Light Red
-  { name: "Loved", color: "#F06292", rgb: { r: 240, g: 98, b: 146 } },    // Pink
+  { name: "Sad", color: "#7986CB", rgb: { r: 121, g: 134, b: 203 } },     // Indigo
+  { name: "Focused", color: "#4DB6AC", rgb: { r: 77, g: 182, b: 172 } }, // Teal
   { name: "Neutral", color: "#90A4AE", rgb: { r: 144, g: 164, b: 174 } },// Blue Grey
-  { name: "Off", color: "#000000", rgb: { r: 0, g: 0, b: 0 } },
 ];
 
 
@@ -46,7 +47,7 @@ export default function Home() {
   const { user } = useAppAuth();
   const router = useRouter();
   const { toast } = useToast();
-  const { firestore, isUserLoading } = useFirebase();
+  const { firestore, database, isUserLoading, areServicesAvailable } = useFirebase();
 
   const [isRecording, setIsRecording] = useState(false);
   const speechRecognitionRef = useRef<any>(null);
@@ -57,16 +58,15 @@ export default function Home() {
     }
   }, [user, router]);
   
-  // This effect runs once when the component mounts and Firebase is ready.
   useEffect(() => {
-    if (firestore && user) {
-        // Set the initial color in Firestore when the component loads.
-        const colorDocRef = doc(firestore, "esp32", "mood_color");
-        setDoc(colorDocRef, { hex: selectedColor.color }).catch(error => {
-          console.error("Failed to set initial color:", error);
+    if (areServicesAvailable && user) {
+        const colorData = { hex: selectedColor.color, ...selectedColor.rgb };
+        const dbRef = ref(database, 'esp32/mood_color');
+        set(dbRef, colorData).catch(error => {
+          console.error("Failed to set initial color in RTDB:", error);
         });
     }
-  }, [firestore, user, selectedColor.color]); // Depend on firestore and user
+  }, [areServicesAvailable, user, selectedColor.color, selectedColor.rgb, database]);
 
   useEffect(() => {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -133,14 +133,11 @@ export default function Home() {
     const timestamp = new Date().toISOString();
     const submissionId = `${user.name.replace(/\s+/g, '_')}_${Date.now()}`;
 
-    // Data for the Warden Dashboard
+    // Data for the Warden Dashboard (Firestore)
     const fullMoodData = {
       student_id: user.name,
       mood_name: moodText,
       mood_color: selectedColor.color,
-      r: selectedColor.rgb.r,
-      g: selectedColor.rgb.g,
-      b: selectedColor.rgb.b,
       timestamp: timestamp,
       truthfulness: "Processing..."
     };
@@ -178,8 +175,8 @@ export default function Home() {
   };
 
   const handleColorChange = (e: MouseEvent<HTMLDivElement>) => {
-    if (!colorWheelRef.current || !firestore) {
-        console.log('handleColorChange returned early. Firestore available:', !!firestore);
+    if (!colorWheelRef.current || !database) {
+        console.log('handleColorChange returned early. Database available:', !!database);
         return;
     }
 
@@ -195,12 +192,10 @@ export default function Home() {
     if (newColor.color !== selectedColor.color) {
       setSelectedColor(newColor);
       
-      console.log('Firestore instance available:', !!firestore);
-      console.log('Attempting to set color:', newColor.color);
-      
-      const colorDocRef = doc(firestore, "esp32", "mood_color");
-      setDoc(colorDocRef, { hex: newColor.color }).catch(error => {
-        console.error("Firestore write for ESP32 failed:", error);
+      const dbRef = ref(database, 'esp32/mood_color');
+      const colorData = { hex: newColor.color, ...newColor.rgb };
+      set(dbRef, colorData).catch(error => {
+        console.error("RTDB write for ESP32 failed:", error);
       });
     }
   };
@@ -282,8 +277,8 @@ export default function Home() {
           </div>
         </CardContent>
         <CardFooter>
-          <Button onClick={handleSubmit} className="w-full" variant="default" disabled={isUserLoading}>
-            {isUserLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+          <Button onClick={handleSubmit} className="w-full" variant="default" disabled={isUserLoading || !areServicesAvailable}>
+            {(isUserLoading || !areServicesAvailable) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             Submit & Continue
           </Button>
         </CardFooter>
