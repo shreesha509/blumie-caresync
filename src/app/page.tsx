@@ -137,17 +137,6 @@ export default function Home() {
     const studentName = appUser?.name || 'Unknown Student';
     const timestamp = new Date().toISOString();
     
-    // This is for Firestore, but we are using RTDB now.
-    // const submissionId = `${studentName.replace(/\s+/g, '_')}_${Date.now()}`;
-
-    const fullMoodData = {
-      student_id: studentName,
-      mood_name: moodText,
-      mood_color: selectedColor.color,
-      timestamp: timestamp,
-      truthfulness: "Processing..."
-    };
-    
     const localMoodData = {
         text: moodText,
         student_id: studentName,
@@ -155,20 +144,11 @@ export default function Home() {
         timestamp: timestamp,
     };
 
-    // For RTDB, we don't need a complex doc ref usually, just the path.
-    // const docRef = doc(firestore, "moods", submissionId);
-
     try {
-      // RTDB write
       const dbRef = ref(database, 'esp32/mood_color');
       const colorData = { hex: selectedColor.color, ...selectedColor.rgb };
       await set(dbRef, colorData);
       
-      // Also save the full mood data, maybe to a different path
-      // For now, let's assume we are only writing the color to RTDB
-      // and the main submission might go to firestore or be handled differently.
-      // Based on the user request, the primary goal is to get color to RTDB.
-
       localStorage.setItem("latestMood", JSON.stringify(localMoodData));
       toast({
         title: "Mood Submitted!",
@@ -184,9 +164,8 @@ export default function Home() {
   };
 
   const handleColorChange = (e: MouseEvent<HTMLDivElement>) => {
-    if (!areServicesAvailable || !user || !database) {
-      toast({ title: "Please wait", description: "Services are initializing or you are not logged in." });
-      return;
+    if (isUserLoading || !areServicesAvailable || !user || !database) {
+      return; // Silently do nothing if not ready
     }
      if (!colorWheelRef.current) {
         return;
