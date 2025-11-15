@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useRef, MouseEvent, useEffect } from "react";
@@ -128,7 +127,7 @@ export default function Home() {
        return;
     }
      if (!user || !user.uid || !database) {
-      toast({ title: "User or database not found", variant: "destructive" });
+      toast({ title: "Please wait, services are initializing or you are not logged in.", variant: "destructive" });
       return;
     }
 
@@ -165,6 +164,7 @@ export default function Home() {
 
   const handleColorChange = (e: MouseEvent<HTMLDivElement>) => {
     if (isUserLoading || !areServicesAvailable || !user || !database) {
+      toast({ title: "Please wait, services are initializing or you are not logged in.", variant: "destructive" });
       return; // Silently do nothing if not ready
     }
      if (!colorWheelRef.current) {
@@ -253,8 +253,8 @@ export default function Home() {
             <div 
               ref={colorWheelRef}
               className={cn(
-                "relative h-40 w-40 rounded-full border-4",
-                (isUserLoading || isSubmitting) ? "cursor-not-allowed opacity-50" : "cursor-pointer"
+                "relative h-40 w-40 rounded-full border-4 cursor-pointer",
+                isSubmitting && "cursor-not-allowed opacity-50"
               )}
               style={{ 
                 backgroundImage: conicGradient,
@@ -273,7 +273,7 @@ export default function Home() {
           </div>
         </CardContent>
         <CardFooter>
-          <Button onClick={handleSubmit} className="w-full" variant="default" disabled={isUserLoading || isSubmitting || !areServicesAvailable}>
+          <Button onClick={handleSubmit} className="w-full" variant="default" disabled={isSubmitting}>
             {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             {isSubmitting ? "Submitting..." : "Submit & Continue"}
           </Button>
@@ -281,4 +281,3 @@ export default function Home() {
       </Card>
     </div>
   );
-}
