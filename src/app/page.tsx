@@ -39,6 +39,15 @@ declare global {
   }
 }
 
+const SpeechRecognition =
+  (typeof window !== 'undefined' && window.SpeechRecognition) ||
+  (typeof window !== 'undefined' && window.webkitSpeechRecognition);
+let speechRecognition: any;
+if (SpeechRecognition) {
+  speechRecognition = new SpeechRecognition();
+}
+
+
 export default function Home() {
   const [moodText, setMoodText] = useState("");
   const [selectedColor, setSelectedColor] = useState(moodColors[0]);
@@ -49,7 +58,8 @@ export default function Home() {
   const { firestore, isUserLoading, areServicesAvailable, user } = useFirebase();
 
   const [isRecording, setIsRecording] = useState(false);
-  const speechRecognitionRef = useRef<any>(null);
+  const speechRecognitionRef = useState(speechRecognition)[0];
+
 
   useEffect(() => {
     if (appUser && appUser.role === "warden") {
@@ -57,17 +67,25 @@ export default function Home() {
     }
   }, [appUser, router]);
   
-  useEffect(() => {
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (SpeechRecognition) {
-      speechRecognitionRef.current = new SpeechRecognition();
-      speechRecognitionRef.current.continuous = true;
-      speechRecognitionRef.current.interimResults = true;
-      speechRecognitionRef.current.lang = 'en-US';
+  const toggleRecording = () => {
+    if (!speechRecognitionRef) {
+        toast({
+          title: "Speech Recognition Not Supported",
+          description: "Your browser doesn't support this feature.",
+          variant: "destructive",
+        });
+        return;
+    }
 
-      speechRecognitionRef.current.onstart = () => setIsRecording(true);
-      speechRecognitionRef.current.onend = () => setIsRecording(false);
-      speechRecognitionRef.current.onresult = (event: any) => {
+    if (isRecording) {
+      speechRecognitionRef.stop();
+      setIsRecording(false);
+    } else {
+      setMoodText('');
+      speechRecognitionRef.start();
+      setIsRecording(true);
+
+      speechRecognitionRef.onresult = (event: any) => {
         let finalTranscript = '';
         for (let i = event.resultIndex; i < event.results.length; ++i) {
           if (event.results[i].isFinal) {
@@ -77,7 +95,7 @@ export default function Home() {
         setMoodText(prevText => prevText + finalTranscript);
       };
       
-       speechRecognitionRef.current.onerror = (event: any) => {
+       speechRecognitionRef.onerror = (event: any) => {
         console.error("Speech recognition error", event.error);
         toast({
           title: "Speech Recognition Error",
@@ -86,29 +104,16 @@ export default function Home() {
         });
         setIsRecording(false);
       };
-    }
-  }, [toast]);
-  
-  const toggleRecording = () => {
-    if (!speechRecognitionRef.current) {
-        toast({
-          title: "Speech Recognition Not Supported",
-          description: "Your browser doesn't support this feature.",
-          variant: "destructive",
-        });
-        return;
-    }
-    if (isRecording) {
-      speechRecognitionRef.current.stop();
-    } else {
-      setMoodText('');
-      speechRecognitionRef.current.start();
+
+      speechRecognitionRef.onend = () => {
+        setIsRecording(false);
+      };
     }
   };
 
   const handleSubmit = async () => {
     if (isRecording) {
-      speechRecognitionRef.current.stop();
+      speechRecognitionRef.stop();
     }
     if (!moodText.trim()) {
        toast({ title: "Please describe your mood", variant: "destructive" });
