@@ -43,19 +43,19 @@ export default function Home() {
   const [moodText, setMoodText] = useState("");
   const [selectedColor, setSelectedColor] = useState(moodColors[0]);
   const colorWheelRef = useRef<HTMLDivElement>(null);
-  const { user } = useAppAuth();
+  const { user: appUser, logout } = useAppAuth();
   const router = useRouter();
   const { toast } = useToast();
-  const { firestore, isUserLoading, areServicesAvailable } = useFirebase();
+  const { firestore, isUserLoading, areServicesAvailable, user } = useFirebase();
 
   const [isRecording, setIsRecording] = useState(false);
   const speechRecognitionRef = useRef<any>(null);
 
   useEffect(() => {
-    if (user && user.role === "warden") {
+    if (appUser && appUser.role === "warden") {
       router.replace("/data");
     }
-  }, [user, router]);
+  }, [appUser, router]);
   
   useEffect(() => {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -114,17 +114,18 @@ export default function Home() {
        toast({ title: "Please describe your mood", variant: "destructive" });
        return;
     }
-     if (!user || !user.name || !firestore) {
+     if (!user || !user.uid || !firestore) {
       toast({ title: "User or database not found", variant: "destructive" });
       return;
     }
 
+    const studentName = appUser?.name || 'Unknown Student';
     const timestamp = new Date().toISOString();
-    const submissionId = `${user.name.replace(/\s+/g, '_')}_${Date.now()}`;
+    const submissionId = `${studentName.replace(/\s+/g, '_')}_${Date.now()}`;
 
     // Data for the Warden Dashboard (Firestore)
     const fullMoodData = {
-      student_id: user.name,
+      student_id: studentName,
       mood_name: moodText,
       mood_color: selectedColor.color,
       timestamp: timestamp,
@@ -134,7 +135,7 @@ export default function Home() {
     // Data for local storage to pass to the game page
     const localMoodData = {
         text: moodText,
-        student_id: user.name,
+        student_id: studentName,
         mood_color: selectedColor.color,
         timestamp: timestamp,
     };
@@ -160,13 +161,12 @@ export default function Home() {
   };
 
   const handleColorChange = (e: MouseEvent<HTMLDivElement>) => {
-    if (!colorWheelRef.current || !firestore) {
-        return;
+    // Stricter guard: ensure firestore and an authenticated user from useFirebase are present.
+    if (!areServicesAvailable || !user) {
+      toast({ title: "Please wait", description: "Services are initializing or you are not logged in." });
+      return;
     }
-
-    // Do not allow color change if user is not authenticated
-    if (!user) {
-        toast({ title: "Please wait", description: "Authenticating..." });
+     if (!colorWheelRef.current) {
         return;
     }
 
@@ -202,7 +202,7 @@ export default function Home() {
     })
     .join(", ")})`;
 
-  if (isUserLoading || !user || user.role !== 'student') {
+  if (isUserLoading || !appUser || appUser.role !== 'student') {
     return <div className="flex min-h-[calc(100dvh-3.5rem)] w-full flex-col items-center justify-center"><Loader2 className="animate-spin" /></div>;
   }
 
@@ -215,7 +215,7 @@ export default function Home() {
       }}
     >
         <div className="mb-4 text-center">
-            <h1 className="text-3xl font-bold font-headline tracking-tight">Welcome, {user.name}!</h1>
+            <h1 className="text-3xl font-bold font-headline tracking-tight">Welcome, {appUser.name}!</h1>
         </div>
       <Card className="w-full max-w-md animate-in fade-in slide-in-from-bottom-5 bg-card/80 backdrop-blur-sm">
         <CardHeader>
@@ -259,8 +259,8 @@ export default function Home() {
                 backgroundImage: conicGradient,
                 borderColor: selectedColor.color
               }}
-              onMouseMove={!isUserLoading ? handleColorChange : undefined}
-              onClick={!isUserLoading ? handleColorChange : undefined}
+              onMouseMove={handleColorChange}
+              onClick={handleColorChange}
             >
                <div 
                  className="absolute inset-0 rounded-full transition-all duration-200"
@@ -281,5 +281,3 @@ export default function Home() {
     </div>
   );
 }
-
-    
