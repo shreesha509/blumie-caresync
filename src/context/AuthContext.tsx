@@ -3,7 +3,6 @@
 
 import { createContext, useContext, useState, ReactNode, useEffect } from "react";
 import { useRouter, usePathname } from "next/navigation";
-import { useFirebase } from "@/firebase";
 
 type Role = "student" | "warden";
 interface User {

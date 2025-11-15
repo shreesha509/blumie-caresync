@@ -131,13 +131,6 @@ export default function Home() {
     }
 
     setIsSubmitting(true);
-    
-    console.log("Submitting Mood:");
-    console.log("Firebase User:", user);
-    console.log("Firestore Instance:", firestore);
-    console.log("Database Instance:", database);
-    console.log("Is User Loading:", isUserLoading);
-
 
     if (!user || !firestore || !database) {
       toast({ title: "Please wait, services are initializing or you are not logged in.", variant: "destructive" });
