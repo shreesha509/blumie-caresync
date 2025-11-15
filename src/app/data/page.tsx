@@ -210,7 +210,7 @@ export default function DataPage() {
                 </CardDescription>
                 </CardHeader>
                 <CardContent>
-                <MoodDataTable columns={columns} data={moodHistory} />
+                <MoodDataTable columns={columns} data={moodHistory || []} />
                 </CardContent>
             </Card>
         </div>
