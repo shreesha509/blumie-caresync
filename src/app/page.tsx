@@ -19,7 +19,6 @@ import { useToast } from "@/hooks/use-toast";
 import { Loader2, Mic, MicOff } from "lucide-react";
 import { useFirebase } from "@/firebase";
 import { ref, set } from "firebase/database";
-import { doc, setDoc } from "firebase/firestore";
 
 const moodColors = [
   { name: "Serene", color: "#64B5F6", rgb: { r: 100, g: 181, b: 246 } },  // Light Blue
