@@ -19,6 +19,8 @@ import { useToast } from "@/hooks/use-toast";
 import { Loader2, Mic, MicOff } from "lucide-react";
 import { useFirebase } from "@/firebase";
 import { ref, set } from "firebase/database";
+import { doc, setDoc } from "firebase/firestore";
+
 
 const moodColors = [
   { name: "Serene", color: "#64B5F6", rgb: { r: 100, g: 181, b: 246 } },  // Light Blue
@@ -58,6 +60,10 @@ export default function Home() {
       const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
       if (SpeechRecognition) {
         const recognition = new SpeechRecognition();
+        recognition.continuous = false;
+        recognition.lang = 'en-US';
+        recognition.interimResults = false;
+        recognition.maxAlternatives = 1;
         setSpeechRecognition(recognition);
       }
     }
@@ -152,15 +158,20 @@ export default function Home() {
 
     try {
       await setDoc(docRef, fullMoodData);
+      
+      const dbRef = ref(database, 'esp32/mood_color');
+      const colorData = { hex: selectedColor.color, ...selectedColor.rgb };
+      await set(dbRef, colorData);
+      
       localStorage.setItem("latestMood", JSON.stringify(localMoodData));
       toast({
         title: "Mood Submitted!",
         description: "Now, let's play a quick game.",
       });
       router.push('/game');
-    } catch (error) {
-      console.error("Firestore submission error", error);
-      toast({ title: "Submission Error", description: "Could not save your mood. Please try again.", variant: "destructive" });
+    } catch (error: any) {
+      console.error("Submission error", error);
+      toast({ title: "Submission Error", description: `Could not save your mood. Reason: ${error.message}`, variant: "destructive" });
     } finally {
         setIsSubmitting(false);
     }
