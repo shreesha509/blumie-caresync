@@ -58,24 +58,6 @@ export default function Home() {
   }, [user, router]);
   
   useEffect(() => {
-    // This effect ensures the color is updated in Firestore ONLY when services
-    // are available AND the user is authenticated.
-    if (areServicesAvailable && user && firestore) {
-        const colorData = { hex: selectedColor.color, ...selectedColor.rgb };
-        const docRef = doc(firestore, 'esp32', 'mood_color');
-        
-        setDoc(docRef, colorData, { merge: true }).catch(error => {
-          const contextualError = new FirestorePermissionError({
-            path: docRef.path,
-            operation: 'update',
-            requestResourceData: colorData,
-          });
-          errorEmitter.emit('permission-error', contextualError);
-        });
-    }
-  }, [areServicesAvailable, user, selectedColor, firestore]);
-
-  useEffect(() => {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (SpeechRecognition) {
       speechRecognitionRef.current = new SpeechRecognition();
@@ -299,3 +281,5 @@ export default function Home() {
     </div>
   );
 }
+
+    
