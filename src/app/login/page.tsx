@@ -26,21 +26,39 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { User, Shield } from "lucide-react";
+import { User, Shield, Loader2 } from "lucide-react";
 import { studentData } from "@/lib/student-data";
+import { useFirebase } from "@/firebase";
+import { signInAnonymously } from "firebase/auth";
 
 export default function LoginPage() {
   const { login } = useAuth();
   const { toast } = useToast();
-  
+  const { auth } = useFirebase();
+  const [isLoggingIn, setIsLoggingIn] = useState(false);
+
   const [studentName, setStudentName] = useState("");
   const [studentPassword, setStudentPassword] = useState("");
   const [wardenPassword, setWardenPassword] = useState("");
 
-  const handleStudentLogin = () => {
+  const handleStudentLogin = async () => {
     const student = studentData.find(s => s.name.toLowerCase() === studentName.toLowerCase());
     if (student && student.password === studentPassword) {
-      login("student", { name: student.name });
+      setIsLoggingIn(true);
+      try {
+        // Sign into Firebase anonymously to get a UID
+        await signInAnonymously(auth);
+        // Then log into the app's context
+        login("student", { name: student.name });
+      } catch (error) {
+        console.error("Firebase anonymous login failed:", error);
+        toast({
+          title: "Login Failed",
+          description: "Could not connect to authentication service. Please try again.",
+          variant: "destructive",
+        });
+        setIsLoggingIn(false);
+      }
     } else {
        toast({
         title: "Invalid Credentials",
@@ -83,7 +101,7 @@ export default function LoginPage() {
         <CardContent className="grid gap-4">
           <AlertDialog>
             <AlertDialogTrigger asChild>
-              <Button size="lg">
+              <Button size="lg" disabled={isLoggingIn}>
                 <User className="mr-2" />
                 Login as Student
               </Button>
@@ -105,6 +123,7 @@ export default function LoginPage() {
                     className="col-span-3"
                     value={studentName}
                     onChange={(e) => setStudentName(e.target.value)}
+                    disabled={isLoggingIn}
                   />
                 </div>
                  <div className="grid grid-cols-4 items-center gap-4">
@@ -117,8 +136,9 @@ export default function LoginPage() {
                     className="col-span-3"
                     value={studentPassword}
                     onChange={(e) => setStudentPassword(e.target.value)}
+                    disabled={isLoggingIn}
                      onKeyDown={(e) => {
-                      if (e.key === 'Enter') {
+                      if (e.key === 'Enter' && !e.shiftKey) {
                         e.preventDefault();
                         handleStudentLogin();
                       }
@@ -130,8 +150,13 @@ export default function LoginPage() {
                 <AlertDialogCancel onClick={() => {
                   setStudentName('');
                   setStudentPassword('');
-                }}>Cancel</AlertDialogCancel>
-                <AlertDialogAction onClick={handleStudentLogin}>Login</AlertDialogAction>
+                }}
+                disabled={isLoggingIn}
+                >Cancel</AlertDialogCancel>
+                <AlertDialogAction onClick={handleStudentLogin} disabled={isLoggingIn}>
+                  {isLoggingIn && <Loader2 className="animate-spin" />}
+                  {isLoggingIn ? "Logging in..." : "Login"}
+                </AlertDialogAction>
               </AlertDialogFooter>
             </AlertDialogContent>
           </AlertDialog>

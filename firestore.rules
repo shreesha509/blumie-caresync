@@ -7,11 +7,11 @@ service cloud.firestore {
       allow read, write: if false;
     }
 
-    // Rule for mood submissions. Only the logged-in user can create
-    // their own mood entries.
+    // Rule for mood submissions. Only authenticated users can create their own mood entries.
+    // We check against the `firebase_uid` field in the document.
     match /moods/{submissionId} {
-      allow create: if request.auth != null && request.resource.data.student_id == request.auth.uid;
-      allow read, update: if resource.data.student_id == request.auth.uid;
+      allow create: if request.auth != null && request.resource.data.firebase_uid == request.auth.uid;
+      allow read, update: if request.auth != null && resource.data.firebase_uid == request.auth.uid;
     }
 
     // Warden access to all mood data.

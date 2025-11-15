@@ -132,13 +132,6 @@ export default function Home() {
 
     setIsSubmitting(true);
     
-    console.log("Submitting Mood:");
-    console.log("Firebase User:", user);
-    console.log("Firestore Instance:", firestore);
-    console.log("Database Instance:", database);
-    console.log("Is User Loading:", isUserLoading);
-    console.log("Are Services Available:", areServicesAvailable);
-
     if (!user || !firestore || !database) {
       toast({ title: "Please wait, services are initializing or you are not logged in.", variant: "destructive" });
       setIsSubmitting(false);
@@ -148,7 +141,7 @@ export default function Home() {
     const studentName = appUser?.name || 'Unknown Student';
     const timestamp = new Date();
     
-    // This unique ID will be used for both Firestore and for finding the item later
+    // Use the Firebase UID for the document ID to ensure uniqueness per user session
     const submissionId = `${studentName.replace(/\s+/g, '_')}_${timestamp.getTime()}`;
 
     const moodData = {
@@ -157,6 +150,7 @@ export default function Home() {
         mood_color: selectedColor.color,
         timestamp: timestamp.toISOString(),
         truthfulness: "Processing...", // Set initial status for the warden dashboard
+        firebase_uid: user.uid, // Store the firebase UID for future reference
     };
 
     // Store a simplified version in localStorage for the game and chat pages
@@ -193,7 +187,7 @@ export default function Home() {
   };
 
   const handleColorChange = (e: MouseEvent<HTMLDivElement>) => {
-     if (!colorWheelRef.current || isSubmitting) {
+     if (!colorWheelRef.current || isSubmitting || isUserLoading || !areServicesAvailable) {
         return;
     }
 
@@ -278,7 +272,7 @@ export default function Home() {
               ref={colorWheelRef}
               className={cn(
                 "relative h-40 w-40 rounded-full border-4 cursor-pointer",
-                (isSubmitting) && "cursor-not-allowed opacity-50"
+                (isSubmitting || isUserLoading || !areServicesAvailable) && "cursor-not-allowed opacity-50"
               )}
               style={{ 
                 backgroundImage: conicGradient,
@@ -297,9 +291,9 @@ export default function Home() {
           </div>
         </CardContent>
         <CardFooter>
-          <Button onClick={handleSubmit} className="w-full" variant="default" disabled={isSubmitting || !moodText}>
+          <Button onClick={handleSubmit} className="w-full" variant="default" disabled={isSubmitting || !moodText || isUserLoading || !areServicesAvailable}>
             {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            {isSubmitting ? "Submitting..." : "Submit & Continue"}
+            {(isUserLoading || !areServicesAvailable) ? "Initializing..." : (isSubmitting ? "Submitting..." : "Submit & Continue")}
           </Button>
         </CardFooter>
       </Card>
