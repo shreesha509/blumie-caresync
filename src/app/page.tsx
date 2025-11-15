@@ -17,6 +17,7 @@ import { useAuth as useAppAuth } from "@/context/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Mic, MicOff } from "lucide-react";
 import { useFirebase } from "@/firebase";
+import { setDoc, doc } from "firebase/firestore";
 import { ref, set } from "firebase/database";
 
 
@@ -46,7 +47,7 @@ export default function Home() {
   const { user: appUser } = useAppAuth();
   const router = useRouter();
   const { toast } = useToast();
-  const { database, isUserLoading, areServicesAvailable, user } = useFirebase();
+  const { database, firestore, isUserLoading, areServicesAvailable, user } = useFirebase();
 
   const [isRecording, setIsRecording] = useState(false);
   const [speechRecognition, setSpeechRecognition] = useState<any>(null);
@@ -62,17 +63,43 @@ export default function Home() {
         recognition.lang = 'en-US';
         recognition.interimResults = false;
         recognition.maxAlternatives = 1;
+        
+        recognition.onresult = (event: any) => {
+          let finalTranscript = '';
+          for (let i = event.resultIndex; i < event.results.length; ++i) {
+            if (event.results[i].isFinal) {
+              finalTranscript += event.results[i][0].transcript;
+            }
+          }
+          setMoodText(prevText => prevText + finalTranscript);
+          setIsRecording(false);
+        };
+        
+         recognition.onerror = (event: any) => {
+          console.error("Speech recognition error", event.error);
+          toast({
+            title: "Speech Recognition Error",
+            description: `An error occurred: ${event.error}`,
+            variant: "destructive",
+          });
+          setIsRecording(false);
+        };
+
+        recognition.onend = () => {
+          setIsRecording(false);
+        };
+
         setSpeechRecognition(recognition);
       }
     }
-  }, []);
+  }, [toast]);
 
 
   useEffect(() => {
-    if (appUser && appUser.role === "warden") {
+    if (!isUserLoading && appUser && appUser.role === "warden") {
       router.replace("/data");
     }
-  }, [appUser, router]);
+  }, [appUser, isUserLoading, router]);
   
   const toggleRecording = () => {
     if (!speechRecognition) {
@@ -86,35 +113,10 @@ export default function Home() {
 
     if (isRecording) {
       speechRecognition.stop();
-      setIsRecording(false);
     } else {
       setMoodText('');
       speechRecognition.start();
       setIsRecording(true);
-
-      speechRecognition.onresult = (event: any) => {
-        let finalTranscript = '';
-        for (let i = event.resultIndex; i < event.results.length; ++i) {
-          if (event.results[i].isFinal) {
-            finalTranscript += event.results[i][0].transcript;
-          }
-        }
-        setMoodText(prevText => prevText + finalTranscript);
-      };
-      
-       speechRecognition.onerror = (event: any) => {
-        console.error("Speech recognition error", event.error);
-        toast({
-          title: "Speech Recognition Error",
-          description: `An error occurred: ${event.error}`,
-          variant: "destructive",
-        });
-        setIsRecording(false);
-      };
-
-      speechRecognition.onend = () => {
-        setIsRecording(false);
-      };
     }
   };
 
@@ -126,7 +128,7 @@ export default function Home() {
        toast({ title: "Please describe your mood", variant: "destructive" });
        return;
     }
-     if (!user || !user.uid || !database) {
+     if (!user || !firestore) {
       toast({ title: "Please wait, services are initializing or you are not logged in.", variant: "destructive" });
       return;
     }
@@ -134,26 +136,46 @@ export default function Home() {
     setIsSubmitting(true);
 
     const studentName = appUser?.name || 'Unknown Student';
-    const timestamp = new Date().toISOString();
+    const timestamp = new Date();
     
-    const localMoodData = {
-        text: moodText,
+    // This unique ID will be used for both Firestore and for finding the item later
+    const submissionId = `${studentName.replace(/\s+/g, '_')}_${timestamp.getTime()}`;
+
+    const moodData = {
         student_id: studentName,
+        mood_name: moodText,
         mood_color: selectedColor.color,
-        timestamp: timestamp,
+        timestamp: timestamp.toISOString(),
+        truthfulness: "Processing...", // Set initial status for the warden dashboard
     };
 
+    // Store a simplified version in localStorage for the game and chat pages
+    const localMoodData = {
+        ...moodData,
+        text: moodText,
+    };
+    
     try {
-      const dbRef = ref(database, 'esp32/mood_color');
-      const colorData = { hex: selectedColor.color, ...selectedColor.rgb };
-      await set(dbRef, colorData);
+      // 1. Write the full mood data to Firestore for analysis and the warden dashboard
+      const moodDocRef = doc(firestore, 'moods', submissionId);
+      await setDoc(moodDocRef, moodData);
       
+      // 2. Write the color to Realtime Database for the ESP32
+      if (database) {
+        const dbRef = ref(database, 'esp32/mood_color');
+        const colorData = { hex: selectedColor.color, ...selectedColor.rgb };
+        await set(dbRef, colorData);
+      }
+      
+      // 3. Save to localStorage and proceed
       localStorage.setItem("latestMood", JSON.stringify(localMoodData));
+
       toast({
         title: "Mood Submitted!",
         description: "Now, let's play a quick game.",
       });
       router.push('/game');
+
     } catch (error: any) {
       console.error("Submission error", error);
       toast({ title: "Submission Error", description: `Could not save your mood. Reason: ${error.message}`, variant: "destructive" });
@@ -163,13 +185,11 @@ export default function Home() {
   };
 
   const handleColorChange = (e: MouseEvent<HTMLDivElement>) => {
-    if (isUserLoading || !areServicesAvailable || !user || !database) {
-      toast({ title: "Please wait, services are initializing or you are not logged in.", variant: "destructive" });
-      return; // Silently do nothing if not ready
-    }
      if (!colorWheelRef.current) {
         return;
     }
+    // Do not allow color change if services aren't ready or submitting
+    if (isUserLoading || !areServicesAvailable || !database || isSubmitting) return;
 
     const rect = colorWheelRef.current.getBoundingClientRect();
     const x = e.clientX - rect.left - rect.width / 2;
@@ -186,12 +206,8 @@ export default function Home() {
       const dbRef = ref(database, 'esp32/mood_color');
       const colorData = { hex: newColor.color, ...newColor.rgb };
       set(dbRef, colorData).catch(error => {
+        // This is a non-critical error, so we just log it.
         console.error("RTDB write for ESP32 failed:", error);
-        toast({
-            title: "Realtime Database Error",
-            description: `Could not update color. Reason: ${error.message}`,
-            variant: "destructive"
-        });
       });
     }
   };
@@ -254,7 +270,7 @@ export default function Home() {
               ref={colorWheelRef}
               className={cn(
                 "relative h-40 w-40 rounded-full border-4 cursor-pointer",
-                isSubmitting && "cursor-not-allowed opacity-50"
+                (isUserLoading || !areServicesAvailable || isSubmitting) && "cursor-not-allowed opacity-50"
               )}
               style={{ 
                 backgroundImage: conicGradient,
@@ -273,7 +289,7 @@ export default function Home() {
           </div>
         </CardContent>
         <CardFooter>
-          <Button onClick={handleSubmit} className="w-full" variant="default" disabled={isSubmitting}>
+          <Button onClick={handleSubmit} className="w-full" variant="default" disabled={isSubmitting || isUserLoading || !areServicesAvailable || !moodText}>
             {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             {isSubmitting ? "Submitting..." : "Submit & Continue"}
           </Button>
@@ -281,3 +297,4 @@ export default function Home() {
       </Card>
     </div>
   );
+}
